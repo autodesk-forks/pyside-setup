@@ -12,9 +12,8 @@ fi
 
 export WORKDIR=$1
 export ARTIFACTORYDIR=$WORKDIR/artifactory
-export EXTERNALSDIR=$WORKDIR/../externals
 
-export CLANG_INSTALL_DIR=$EXTERNALSDIR/libclang
+export CLANG_INSTALL_DIR=$ARTIFACTORYDIR/libclang
 
 #Create qt.conf file
 touch $ARTIFACTORYDIR/$QTVERSION/bin/qt.conf

@@ -6,7 +6,7 @@ properties([
   parameters([
 	string(defaultValue: "", description: 'Commit', name: 'COMMIT'),
 	string(name: 'QTVersion', defaultValue: '5.12.2'),
-	string(name: 'QTBuildID', defaultValue: '8'),
+	string(name: 'QTBuildID', defaultValue: '4'),
   ])
 ])
 
@@ -33,7 +33,7 @@ gitBranch = env.BRANCH_NAME  //Actual branch name in GIT repo
 default_Recipients = ["Bang.Nguyen@autodesk.com"]
 DEVTeam_Recipients = ["keith.kyzivat@autodesk.com"]
 ENGOPSTeam_Recipients = ["Bang.Nguyen@autodesk.com", "vishal.dalal@autodesk.com"]
-QTTeam_Recipients = ["Daniela.Stajic@autodesk.com", "Wayne.Arnold@autodesk.com", "Richard.Langlois@autodesk.com", "william.smith@autodesk.com"]
+QTTeam_Recipients = ["Daniela.Stajic@autodesk.com", "Wayne.Arnold@autodesk.com", "Richard.Langlois@autodesk.com", "william.smith@autodesk.com", "Bang.Nguyen@autodesk.com"]
 
 
 buildStages = [
@@ -203,7 +203,14 @@ def GetArtifacts(String workDir, String buildConfig)
 
 			if (isUnix()) {
 				runOSCommand("mkdir -p ${downloadDir}")
-				runOSCommand("tar zxvf ${downloadFile} -C ${downloadDir}")
+				def extension = downloadFile.substring(downloadFile.lastIndexOf('.'))
+				print "Extension: ${extension}"
+				//Use unzip for zip file.  tar failed to extract zip file on Linux
+				if(extension in ['.zip']) {
+					runOSCommand("unzip ${downloadFile} -d ${downloadDir}")
+				} else {
+					runOSCommand("tar zxvf ${downloadFile} -C ${downloadDir}")
+				}
 			}
 			else {
 				runOSCommand("7z e ${downloadFile} -y -spf -o${downloadDir}")
@@ -429,7 +436,7 @@ def Setup(String buildConfig)
 	def stage = "Setup"
 	env.PYSIDEVERSION = "${pysideVersion}"
 	env.QTVERSION = "${qtVersion}"
-	
+
 	try {
 		def workDir = getWorkspace(buildConfig)
 		ws(workDir) {
@@ -452,15 +459,15 @@ def Setup(String buildConfig)
 
 		if (checkOS() == "Mac") {
 			PysidePackage[buildConfig] = "${branch}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.QTVersion}-${params.QTBuildID}-osx10141-xcode101.tar.gz"
-			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-osx10141-xcode101.tar.gz"]
+			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-osx10141-xcode101.tar.gz", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-mac.tar.gz"]
 		}
 		else if (checkOS() == "Linux") {
 			PysidePackage[buildConfig] = "${branch}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.QTVersion}-${params.QTBuildID}-rhel73-gcc485.tar.gz"
-			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-rhel73-gcc485.tar.gz"]
+			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-rhel73-gcc485.tar.gz", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz"]
 		}
 		else {
 			PysidePackage[buildConfig] = "${branch}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.QTVersion}-${params.QTBuildID}-win-v141.zip"
-			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-win-v141.zip", "team-asrd-pilots/openssl/102h/openssl-1.0.2h-win-vc14.zip"]
+			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-win-v141.zip", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-windows-vs2015_64.zip", "team-asrd-pilots/openssl/102h/openssl-1.0.2h-win-vc14.zip"]
 		}
 
 		results[buildConfig][stage] = "Success"
@@ -521,7 +528,7 @@ def Build(String workDir, String buildConfig)
 	else {
 		runOSCommand "echo ${buildConfig} Pyside: %PYSIDEVERSION% Qt: %QTVERSION%"
 	}
-	
+
 	try {
 		//timeout(time: 9, unit: 'HOURS') {
 			dir (srcDir) {
@@ -596,7 +603,7 @@ def Publish(String workDir, String buildConfig)
 							"pattern": "out/*.tar.gz",
 							"target": "oss-stg-generic/pyside2/${branch}/Maya/",
 							"recursive": "false",
-							"props": "commit=${gitCommit};QtVersion=${params.QTVersion};QtBuildID=${params.QTBuildID};libclang=release_70;python=2.7"
+							"props": "commit=${gitCommit};QtVersion=${params.QTVersion};QtBuildID=${params.QTBuildID};libclang=release_70-based;python=2.7"
 						}
 					]
 				}"""
@@ -609,7 +616,7 @@ def Publish(String workDir, String buildConfig)
 							"pattern": "out/*.zip",
 							"target": "oss-stg-generic/pyside2/${branch}/Maya/",
 							"recursive": "false",
-							"props": "commit=${gitCommit};QtVersion=${params.QTVersion};QtBuildID=${params.QTBuildID};libclang=release_70;python=2.7;OpenSSH=1.0.2h"
+							"props": "commit=${gitCommit};QtVersion=${params.QTVersion};QtBuildID=${params.QTBuildID};libclang=release_70-based;python=2.7;OpenSSH=1.0.2h"
 						}
 					]
 				}"""
