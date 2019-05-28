@@ -4,7 +4,7 @@ if [%1]==[] (
 )
 
 if not defined QTVERSION (
-	echo QTVERSION is NOT defined.  Example: SET QTVERSION=qt_5.12.2
+	echo QTVERSION is NOT defined.  Example: SET QTVERSION=qt_5.12.4
 	exit /b 1
 )
 else (

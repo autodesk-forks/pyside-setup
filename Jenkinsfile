@@ -5,7 +5,7 @@ properties([
   disableConcurrentBuilds(),
   parameters([
 	string(defaultValue: "", description: 'Commit', name: 'COMMIT'),
-	string(name: 'QTVersion', defaultValue: '5.12.2'),
+	string(name: 'QTVersion', defaultValue: '5.12.4'),
 	string(name: 'QTBuildID', defaultValue: '4'),
   ])
 ])
@@ -25,7 +25,7 @@ config = "Release"  //We always build Release for this package.  Set build param
 gitCommit = ""
 
 product = "pyside"
-branch = "5.12.2" //Pyside branch version
+branch = "5.12.4" //Pyside branch version
 pysideVersion = "${product}_${branch}" //Sub-folder name in zip/tar files
 qtVersion = "qt_${params.QTVersion}"
 gitBranch = env.BRANCH_NAME  //Actual branch name in GIT repo

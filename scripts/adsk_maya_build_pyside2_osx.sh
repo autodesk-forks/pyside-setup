@@ -4,7 +4,7 @@ if [ $# -eq 0 ]; then
 fi
 
 if [[ -z "${QTVERSION}" ]]; then
-	echo "QTVERSION is undefined.  Example: export QTVERSION=qt_5.12.2"
+	echo "QTVERSION is undefined.  Example: export QTVERSION=qt_5.12.4"
 	exit 1
 else
 	echo "QTVERSION=${QTVERSION}"
