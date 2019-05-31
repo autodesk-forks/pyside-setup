@@ -6,7 +6,7 @@ properties([
   parameters([
 	string(defaultValue: "", description: 'Commit', name: 'COMMIT'),
 	string(name: 'QTVersion', defaultValue: '5.12.4'),
-	string(name: 'QTBuildID', defaultValue: '4'),
+	string(name: 'QTBuildID', defaultValue: '9'),
   ])
 ])
 
@@ -26,8 +26,8 @@ gitCommit = ""
 
 product = "pyside"
 branch = "5.12.4" //Pyside branch version
-pysideVersion = "${product}_${branch}" //Sub-folder name in zip/tar files
-qtVersion = "qt_${params.QTVersion}"
+pysideVersion = "${branch}" //Sub-folder name in zip/tar files
+qtVersion = "${params.QTVersion}"
 gitBranch = env.BRANCH_NAME  //Actual branch name in GIT repo
 
 default_Recipients = ["Bang.Nguyen@autodesk.com"]
@@ -90,7 +90,7 @@ def notifyBuild(buildStatus, String gitBranch) {
 	buildStatus =  buildStatus ?: 'SUCCESSFUL'
 
 	// Default values
-	def subject = "[${pysideVersion}] - ${buildStatus}: Job - '${gitBranch} [${env.BUILD_NUMBER}]'"
+	def subject = "[${product}_${pysideVersion}] - ${buildStatus}: Job - '${gitBranch} [${env.BUILD_NUMBER}]'"
 	def emailTO
 	def color
 
@@ -574,9 +574,9 @@ def Package(String workDir, String buildConfig)
 			dir('install') {
 				if (isUnix()){
 					runOSCommand("""mkdir ../out""")  //Create 'out' folder where zip files will be created.
-					runOSCommand("""tar -czf ../out/${PysidePackage[buildConfig]} ${pysideVersion}""")
+					runOSCommand("""tar -czf ../out/${PysidePackage[buildConfig]} ${product}_${pysideVersion}""")
 				} else {
-					runOSCommand("""7z a -tzip ../out/${PysidePackage[buildConfig]} ${pysideVersion}""")
+					runOSCommand("""7z a -tzip ../out/${PysidePackage[buildConfig]} ${product}_${pysideVersion}""")
 				}
 			}
 		}

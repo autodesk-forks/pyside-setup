@@ -23,13 +23,13 @@ set LLVM_INSTALL_DIR=%ARTIFACTORYDIR%\libclang
 SET PATH=%LLVM_INSTALL_DIR%\bin;%EXTERNALSDIR%\jom_1_1_3;%PATH%;
 
 rem Create qt.conf file
-echo [Paths] > %ARTIFACTORYDIR%\%QTVERSION%\bin\qt.conf
-echo Prefix=.. >> %ARTIFACTORYDIR%\%QTVERSION%\bin\qt.conf
+echo [Paths] > %ARTIFACTORYDIR%\qt_%QTVERSION%\bin\qt.conf
+echo Prefix=.. >> %ARTIFACTORYDIR%\qt_%QTVERSION%\bin\qt.conf
 
 rem Build release version
-C:\Python27\python.exe setup.py build --relwithdebinfo --qmake=%ARTIFACTORYDIR%\%QTVERSION%\bin\qmake.exe --openssl=%ARTIFACTORYDIR%\openssl\1.0.2h\x64\bin --build-tests --ignore-git --parallel=%NUMBER_OF_PROCESSORS% || echo "**** Failed to build Pyside2 Release ****" && exit /b 1
+C:\Python27\python.exe setup.py build --relwithdebinfo --qmake=%ARTIFACTORYDIR%\qt_%QTVERSION%\bin\qmake.exe --openssl=%ARTIFACTORYDIR%\openssl\1.0.2h\x64\bin --build-tests --ignore-git --parallel=%NUMBER_OF_PROCESSORS% || echo "**** Failed to build Pyside2 Release ****" && exit /b 1
 
 rem Build debug version
-rem C:\Python27\python.exe setup.py build --debug --qmake=%ARTIFACTORYDIR%\%QTVERSION%\bin\qmake.exe --openssl=%ARTIFACTORYDIR%\openssl\1.0.2h\x64\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
+rem C:\Python27\python.exe setup.py build --debug --qmake=%ARTIFACTORYDIR%\qt_%QTVERSION%\bin\qmake.exe --openssl=%ARTIFACTORYDIR%\openssl\1.0.2h\x64\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
 
 echo "==== Success ===="
