@@ -574,9 +574,9 @@ def Package(String workDir, String buildConfig)
 			dir('install') {
 				if (isUnix()){
 					runOSCommand("""mkdir ../out""")  //Create 'out' folder where zip files will be created.
-					runOSCommand("""tar -czf ../out/${PysidePackage[buildConfig]} ${product}_${pysideVersion}""")
+					runOSCommand("""tar -czf ../out/${PysidePackage[buildConfig]} *""")
 				} else {
-					runOSCommand("""7z a -tzip ../out/${PysidePackage[buildConfig]} ${product}_${pysideVersion}""")
+					runOSCommand("""7z a -tzip ../out/${PysidePackage[buildConfig]} *""")
 				}
 			}
 		}
