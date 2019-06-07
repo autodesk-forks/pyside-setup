@@ -1,3 +1,11 @@
+# Current Directory is assumed to be the base of the pyside-setup repository.
+
+if [ ! -e README.pyside2.md ]
+    echo "Pyside2 packaging script not in correct current directory"
+    echo "ABORTING: Current directory incorrect."
+    exit 1
+fi
+
 if [ $# -eq 0 ]; then
     echo "Need to pass workspace directory to the script"
 	exit 1
@@ -20,17 +28,22 @@ fi
 
 export WORKDIR=$1
 export SRCDIR=$WORKDIR/src
-export INSTALLDIR=$WORKDIR/install/pyside_$PYSIDEVERSION
+export INSTALLDIR=$WORKDIR/install
 
-PKGDIR="$SRCDIR/build/lib.macosx-*-2.7"
 mkdir -p $INSTALLDIR
-cp -R $PKGDIR/PySide2 $INSTALLDIR/PySide2
-pushd $PKGDIR >/dev/null
-tar zcf $INSTALLDIR/PySide2/pyside2uic.tar.gz pyside2uic
-popd >/dev/null
-tar zcf $INSTALLDIR/PySide2/pyside2-qt$QTVERSION-include.tgz pyside2_install/py2.7-qt5.12.4-64bit-release/include/PySide2
-tar zcf $INSTALLDIR/PySide2/shiboken2-qt$QTVERSION-include.tgz pyside2_install/py2.7-qt5.12.4-64bit-release/include/shiboken2
-cp pyside2_install/py2.7-qt5.12.4-64bit-release/bin/pyside2-uic $INSTALLDIR/PySide2
-echo "==== Success ===="
 
+# Instead of encoding the pyside version number in a directory name
+# instead put it in a "pyside2_version" file.
+cat <<EOF >${INSTALLDIR}/pyside2_version
+pyside2 $PYSIDEVERSION
+qt $QTVERSION
+EOF
+
+if [ -e "pyside2_install" ]; then
+    cp -R "pyside2_install" $INSTALLDIR/
+fi
+if [ -e "pyside2d_install" ]; then
+    cp -R "pyside2d_install" $INSTALLDIR/
+fi
+echo "==== Success ===="
 
