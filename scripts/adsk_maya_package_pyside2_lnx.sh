@@ -1,6 +1,6 @@
 # Current Directory is assumed to be the base of the pyside-setup repository.
 
-if [ ! -e README.pyside2.md ]
+if [ ! -e README.pyside2.md ] ; then
     echo "Pyside2 packaging script not in correct current directory"
     echo "ABORTING: Current directory incorrect."
     exit 1
