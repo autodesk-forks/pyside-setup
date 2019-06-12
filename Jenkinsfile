@@ -6,7 +6,9 @@ properties([
   parameters([
 	string(defaultValue: "", description: 'Commit', name: 'COMMIT'),
 	string(name: 'QTVersion', defaultValue: '5.12.4'),
-	string(name: 'QTBuildID', defaultValue: '14'),
+	string(name: 'QTBuildID', defaultValue: '18'),
+	string(name: 'WinQTVersion', defaultValue: '5.12.2'),
+	string(name: 'WinQTBuildID', defaultValue: '8'),
   ])
 ])
 
@@ -466,8 +468,8 @@ def Setup(String buildConfig)
 			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-rhel73-gcc485.tar.gz", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz"]
 		}
 		else {
-			PysidePackage[buildConfig] = "${branch}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.QTVersion}-${params.QTBuildID}-win-v141.zip"
-			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-win-v141.zip", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-windows-vs2015_64.zip", "team-asrd-pilots/openssl/102h/openssl-1.0.2h-win-vc14.zip"]
+			PysidePackage[buildConfig] = "${branch}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.WinQTVersion}-${params.WinQTBuildID}-win-v141.zip"
+			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.WinQTBuildID}-win-v141.zip", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-windows-vs2015_64.zip", "team-asrd-pilots/openssl/102h/openssl-1.0.2h-win-vc14.zip"]
 		}
 
 		results[buildConfig][stage] = "Success"
@@ -540,7 +542,7 @@ def Build(String workDir, String buildConfig)
 					runOSCommand("scl enable devtoolset-6 python27 'export QTVERSION=${qtVersion} && bash $scriptDir/adsk_maya_build_pyside2_lnx.sh ${workDir}'")
 				}
 				else {
-					runOSCommand("""$scriptDir\\adsk_maya_build_pyside2_win.bat ${workDir}""")
+					runOSCommand("""set QTVERSION=${params.WinQTVersion} && $scriptDir\\adsk_maya_build_pyside2_win.bat ${workDir}""")
 				}
 			}
 		//}
@@ -566,7 +568,7 @@ def Package(String workDir, String buildConfig)
 				runOSCommand("""export PYSIDEVERSION=${pysideVersion} && export QTVERSION=${qtVersion} && bash $scriptDir/adsk_maya_package_pyside2_lnx.sh ${workDir}""")
 			}
 			else {
-				runOSCommand("""$scriptDir\\adsk_maya_package_pyside2_win.bat ${workDir}""")
+				runOSCommand("""set QTVERSION=${params.WinQTVersion} && $scriptDir\\adsk_maya_package_pyside2_win.bat ${workDir}""")
 			}
 		}
 
@@ -616,7 +618,7 @@ def Publish(String workDir, String buildConfig)
 							"pattern": "out/*.zip",
 							"target": "oss-stg-generic/pyside2/${branch}/Maya/",
 							"recursive": "false",
-							"props": "commit=${gitCommit};QtVersion=${params.QTVersion};QtBuildID=${params.QTBuildID};libclang=release_70-based;python=2.7;OpenSSH=1.0.2h"
+							"props": "commit=${gitCommit};QtVersion=${params.WinQTVersion};QtBuildID=${params.WinQTBuildID};libclang=release_70-based;python=2.7;OpenSSH=1.0.2h"
 						}
 					]
 				}"""
