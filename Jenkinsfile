@@ -228,7 +228,7 @@ def getBuildLocation() {
 	outputString = "<td>Artifacts</td><td>"
 	buildConfigs.each {
 		if (it.value != "local") {
-			outputString += "https://art-bobcat.autodesk.com:443/artifactory/oss-stg-generic/pyside2/${branch}/Maya/${PysidePackage[it.key]}<br>"
+			outputString += "https://art-bobcat.autodesk.com:443/artifactory/oss-stg-generic/pyside2/${pysideVersion}/Maya/${PysidePackage[it.key]}<br>"
 		}
 	}
 	outputString += "</td>"
@@ -366,7 +366,7 @@ def getWorkspace(String buildConfig)
 		workDir = root.take(count) + product
 	}
 	else {
-		workDir = root.take(count) + product + '_' + branch  //Should add buildType and config too i.e. CI/DI/PF Debug/Release
+		workDir = root.take(count) + product + '_' + pysideVersion  //Should add buildType and config too i.e. CI/DI/PF Debug/Release
 	}
 	println "workDir: ${workDir}"
 	return workDir
@@ -405,7 +405,7 @@ def Initialize(String buildConfig)
 			runOSCommand("git pull")
 			//Get lastBuildCommit & lastSuccessfulCommit
 			buildInfo = sh (
-				script: "python $scriptDir/updatebuildcommit.py -g -p ${product} -b ${branch} -t ${buildType} -c ${config}",
+				script: "python $scriptDir/updatebuildcommit.py -g -p ${product} -b ${pysideVersion} -t ${buildType} -c ${config}",
 				returnStdout: true
 			).trim()
 			(lastSuccessfulCommit, lastBuildCommit) = buildInfo.tokenize( ' ' )
@@ -460,18 +460,18 @@ def Setup(String buildConfig)
 		hostName[buildConfig] = getHostName()
 
 		if (checkOS() == "Mac") {
-			PysidePackage[buildConfig] = "${branch}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.QTVersion}-${params.QTBuildID}-osx10141-xcode101.tar.gz"
-			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-osx10141-xcode101.tar.gz", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-mac.tar.gz"]
+			PysidePackage[buildConfig] = "${pysideVersion}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.QTVersion}-${params.QTBuildID}-osx10141-xcode101.tar.gz"
+			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${params.QTVersion}/Maya/${params.QTVersion}-Maya-Qt-${params.QTBuildID}-osx10141-xcode101.tar.gz", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-mac.tar.gz"]
 		}
 		else if (checkOS() == "Linux") {
-			PysidePackage[buildConfig] = "${branch}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.QTVersion}-${params.QTBuildID}-rhel73-gcc485.tar.gz"
-			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.QTBuildID}-rhel73-gcc485.tar.gz", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz"]
+			PysidePackage[buildConfig] = "${pysideVersion}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.QTVersion}-${params.QTBuildID}-rhel73-gcc485.tar.gz"
+			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${params.QTVersion}/Maya/${params.QTVersion}-Maya-Qt-${params.QTBuildID}-rhel73-gcc485.tar.gz", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz"]
 		}
 		else {
-			PysidePackage[buildConfig] = "${branch}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.WinQTVersion}-${params.WinQTBuildID}-win-v141.zip"
-			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.WinQTBuildID}-win-v141.zip", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-windows-vs2015_64.zip", "team-asrd-pilots/openssl/102h/openssl-1.0.2h-win-vc14.zip"]
+			PysidePackage[buildConfig] = "${pysideVersion}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.WinQTVersion}-${params.WinQTBuildID}-win-v141.zip"
+			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${params.WinQTVersion}/Maya/${params.WinQTVersion}-Maya-Qt-${params.WinQTBuildID}-win-v141.zip", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-windows-vs2015_64.zip", "team-asrd-pilots/openssl/102h/openssl-1.0.2h-win-vc14.zip"]
 		}
-        print "$buildConfig artifacts: ${artifacts[buildConfig]}"
+		print "$buildConfig artifacts: ${artifacts[buildConfig]}"
 
 		results[buildConfig][stage] = "Success"
     } catch (e) {
@@ -529,7 +529,9 @@ def Build(String workDir, String buildConfig)
 		runOSCommand "echo ${buildConfig} Pyside: $PYSIDEVERSION Qt: $QTVERSION"
 	}
 	else {
+		env.QTVERSION = "${params.WinQTVersion}"
 		runOSCommand "echo ${buildConfig} Pyside: %PYSIDEVERSION% Qt: %QTVERSION%"
+		env.QTVERSION = "${qtVersion}"
 	}
 
 	try {
@@ -543,9 +545,9 @@ def Build(String workDir, String buildConfig)
 					runOSCommand("scl enable devtoolset-6 python27 'export QTVERSION=${qtVersion} && bash $scriptDir/adsk_maya_build_pyside2_lnx.sh ${workDir}'")
 				}
 				else {
-	                env.QTVERSION = "${params.WinQTVersion}"
-					runOSCommand("""set QTVERSION=${params.WinQTVersion} && $scriptDir\\adsk_maya_build_pyside2_win.bat ${workDir}""")
-	                env.QTVERSION = "${qtVersion}"
+					env.QTVERSION = "${params.WinQTVersion}"
+					runOSCommand("""$scriptDir\\adsk_maya_build_pyside2_win.bat ${workDir}""")
+					env.QTVERSION = "${qtVersion}"
 				}
 			}
 		//}
@@ -571,7 +573,9 @@ def Package(String workDir, String buildConfig)
 				runOSCommand("""export PYSIDEVERSION=${pysideVersion} && export QTVERSION=${qtVersion} && bash $scriptDir/adsk_maya_package_pyside2_lnx.sh ${workDir}""")
 			}
 			else {
-				runOSCommand("""set QTVERSION=${params.WinQTVersion} && $scriptDir\\adsk_maya_package_pyside2_win.bat ${workDir}""")
+				env.QTVERSION = "${params.WinQTVersion}"
+				runOSCommand("""$scriptDir\\adsk_maya_package_pyside2_win.bat ${workDir}""")
+				env.QTVERSION = "${qtVersion}"
 			}
 		}
 
@@ -606,7 +610,7 @@ def Publish(String workDir, String buildConfig)
 					"files": [
 						{
 							"pattern": "out/*.tar.gz",
-							"target": "oss-stg-generic/pyside2/${branch}/Maya/",
+							"target": "oss-stg-generic/pyside2/${pysideVersion}/Maya/",
 							"recursive": "false",
 							"props": "commit=${gitCommit};QtVersion=${params.QTVersion};QtBuildID=${params.QTBuildID};libclang=release_70-based;python=2.7"
 						}
@@ -619,7 +623,7 @@ def Publish(String workDir, String buildConfig)
 					"files": [
 						{
 							"pattern": "out/*.zip",
-							"target": "oss-stg-generic/pyside2/${branch}/Maya/",
+							"target": "oss-stg-generic/pyside2/${pysideVersion}/Maya/",
 							"recursive": "false",
 							"props": "commit=${gitCommit};QtVersion=${params.WinQTVersion};QtBuildID=${params.WinQTBuildID};libclang=release_70-based;python=2.7;OpenSSH=1.0.2h"
 						}
@@ -647,9 +651,9 @@ def Finalize(String buildConfig)
 
 		dir(srcDir) {
 			if (currentBuild.result == "FAILURE") {
-				runOSCommand("python $scriptDir/updatebuildcommit.py -s -p ${product} -b ${branch} -t ${buildType} -c ${config} -sc ${lastSuccessfulCommit} -bc ${gitCommit}")
+				runOSCommand("python $scriptDir/updatebuildcommit.py -s -p ${product} -b ${pysideVersion} -t ${buildType} -c ${config} -sc ${lastSuccessfulCommit} -bc ${gitCommit}")
 			} else {
-				runOSCommand("python $scriptDir/updatebuildcommit.py -s -p ${product} -b ${branch} -t ${buildType} -c ${config} -sc ${gitCommit} -bc ${gitCommit}")
+				runOSCommand("python $scriptDir/updatebuildcommit.py -s -p ${product} -b ${pysideVersion} -t ${buildType} -c ${config} -sc ${gitCommit} -bc ${gitCommit}")
 			}
 		}
 		results[buildConfig][stage] = "Success"
