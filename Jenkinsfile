@@ -471,6 +471,7 @@ def Setup(String buildConfig)
 			PysidePackage[buildConfig] = "${branch}-Maya-Pyside2-${env.BUILD_ID}-Qt-${params.WinQTVersion}-${params.WinQTBuildID}-win-v141.zip"
 			artifacts[buildConfig]  = ["oss-stg-generic/Qt/${branch}/Maya/${branch}-Maya-Qt-${params.WinQTBuildID}-win-v141.zip", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-windows-vs2015_64.zip", "team-asrd-pilots/openssl/102h/openssl-1.0.2h-win-vc14.zip"]
 		}
+        print "$buildConfig artifacts: ${artifacts[buildConfig]}"
 
 		results[buildConfig][stage] = "Success"
     } catch (e) {
