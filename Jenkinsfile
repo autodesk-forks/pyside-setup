@@ -542,7 +542,9 @@ def Build(String workDir, String buildConfig)
 					runOSCommand("scl enable devtoolset-6 python27 'export QTVERSION=${qtVersion} && bash $scriptDir/adsk_maya_build_pyside2_lnx.sh ${workDir}'")
 				}
 				else {
+	                env.QTVERSION = "${params.WinQTVersion}"
 					runOSCommand("""set QTVERSION=${params.WinQTVersion} && $scriptDir\\adsk_maya_build_pyside2_win.bat ${workDir}""")
+	                env.QTVERSION = "${qtVersion}"
 				}
 			}
 		//}
