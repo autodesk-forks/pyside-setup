@@ -401,8 +401,11 @@ def Initialize(String buildConfig)
 			scmInfo = checkout scm
 			gitCommit = params.COMMIT == "" ? scmInfo.GIT_COMMIT : params.COMMIT
 			println "${scm.branches} Branch: ${env.BRANCH_NAME}"
-
-			runOSCommand("git pull")
+			runOSCommand("git reset --merge")
+			runOSCommand("git checkout 4a1d5f1d6cc6325c8e26512f408966821b41c480")
+			runOSCommand("git branch -D ${gitBranch} || true")
+			runOSCommand("git fetch")
+			runOSCommand("git checkout -b ${gitBranch} origin/${gitBranch}")
 			//Get lastBuildCommit & lastSuccessfulCommit
 			buildInfo = sh (
 				script: "python $scriptDir/updatebuildcommit.py -g -p ${product} -b ${pysideVersion} -t ${buildType} -c ${config}",
