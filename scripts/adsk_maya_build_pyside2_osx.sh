@@ -21,7 +21,7 @@ echo [Paths] > $ARTIFACTORYDIR/qt_$QTVERSION/bin/qt.conf
 echo Prefix=.. >> $ARTIFACTORYDIR/qt_$QTVERSION/bin/qt.conf
 
 export NUMBER_OF_PROCESSORS=`sysctl -n hw.ncpu`
-python setup.py build --qmake=$ARTIFACTORYDIR/qt_$QTVERSION/bin/qmake --build-tests --ignore-git --parallel=$NUMBER_OF_PROCESSORS
+python setup.py build --qmake=$ARTIFACTORYDIR/qt_$QTVERSION/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS
 if [ $? -eq 0 ]; then
 	echo "==== Success ==== Release Build"
 else
@@ -29,7 +29,7 @@ else
 	exit 1
 fi
 
-python setup.py build --qmake=$ARTIFACTORYDIR/qt_$QTVERSION/bin/qmake --build-tests --ignore-git --parallel=$NUMBER_OF_PROCESSORS --debug
+python setup.py build --qmake=$ARTIFACTORYDIR/qt_$QTVERSION/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --debug
 if [ $? -eq 0 ]; then
 	echo "==== Success ==== Debug Build"
 else
