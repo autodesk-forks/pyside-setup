@@ -21,12 +21,19 @@ echo [Paths] > $ARTIFACTORYDIR/qt_$QTVERSION/bin/qt.conf
 echo Prefix=.. >> $ARTIFACTORYDIR/qt_$QTVERSION/bin/qt.conf
 
 export NUMBER_OF_PROCESSORS=`cat /proc/cpuinfo | grep processor | wc -l`
-python setup.py build --qmake=$ARTIFACTORYDIR/qt_$QTVERSION/bin/qmake --build-tests --ignore-git --parallel=$NUMBER_OF_PROCESSORS
-
+python setup.py build --qmake=$ARTIFACTORYDIR/qt_$QTVERSION/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS
 if [ $? -eq 0 ]; then
-	echo "==== Success ===="
+	echo "==== Success ==== Release Build"
 else
-    echo "**** Failed to build ****"
+    echo "**** Failed to build **** Release Build"
+	exit 1
+fi
+
+python setup.py build --qmake=$ARTIFACTORYDIR/qt_$QTVERSION/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --debug
+if [ $? -eq 0 ]; then
+	echo "==== Success ==== Debug Build"
+else
+    echo "**** Failed to build **** Debug Build"
 	exit 1
 fi
 
