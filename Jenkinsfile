@@ -6,7 +6,7 @@ properties([
   parameters([
 	string(defaultValue: "", description: 'Commit', name: 'COMMIT'),
 	string(name: 'QTVersion', defaultValue: '5.12.4'),
-	string(name: 'QTBuildID', defaultValue: '34'),
+	string(name: 'QTBuildID', defaultValue: '36'),
   ])
 ])
 
