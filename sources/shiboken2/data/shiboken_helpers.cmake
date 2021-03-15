@@ -423,7 +423,7 @@ macro(shiboken_compute_python_libraries)
         endif()
     endif()
 
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
         if(WIN32 AND NOT SHIBOKEN_PYTHON_LIBRARIES)
             set(SHIBOKEN_PYTHON_LIBRARIES ${PYTHON_LIBRARIES})
         endif()

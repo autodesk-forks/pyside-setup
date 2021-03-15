@@ -538,7 +538,20 @@ class PysideBuild(_build, DistUtilsCommandMixin):
             py_scripts_dir = os.path.join(py_prefix, "Scripts")
         else:
             py_scripts_dir = os.path.join(py_prefix, "bin")
+            if sys.version_info[0] > 2:
+                lib_suff = getattr(sys, 'abiflags', None)
+            else: # Python 2
+                lib_suff = ''
         self.py_scripts_dir = py_scripts_dir
+
+        # Ensure that py_include_dir is updated if the path does not exists
+        # since Python config files might contain hardcoded prefix paths
+        if py_include_dir is None or not os.path.exists(py_include_dir):
+            if sys.platform == "win32":
+                py_include_dir = os.path.join(py_prefix, "include")
+            else:
+                dir_name = "include/python{}{}".format(py_version, lib_suff)
+                py_include_dir = os.path.join(py_prefix, dir_name)
 
         self.qtinfo = QtInfo()
         qt_dir = os.path.dirname(OPTION["QMAKE"])
