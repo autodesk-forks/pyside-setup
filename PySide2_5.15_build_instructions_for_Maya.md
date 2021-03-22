@@ -43,7 +43,7 @@ git clone https://github.com/autodesk-forks/pyside-setup.git src
 
 # Checkout the branch that was used to build PySide2 5.15.2 for Maya
 cd src
-git checkout adsk-maya-pyside-5.15.2
+git checkout adsk-contrib/maya/5.15.2
 ```
 
 Once the cloning process is complete, execute the following commands in a terminal to initialize the repository (in the `src/` directory):
