@@ -2,9 +2,16 @@
 
 This page describes how PySide2 was built for Maya.
 
-PySide2 shares the same requirements as Qt5. The same platforms, tools and compiler need to be used for both (see Qt 5.15.2 for Maya Build Instructions at https://github.com/autodesk-forks/pyside-setup/tree/adsk-contrib/maya/5.15.2/Qt5_5.15_build_instructions_for_Maya.md).
+PySide2 shares the same requirements as Qt5. The same platforms, tools and compiler need to be used for both (see Qt 5.15.2 for Maya Build Instructions at https://github.com/autodesk-forks/qt5/blob/adsk-contrib/maya/5.15.2/Qt5_5.15_build_instructions_for_Maya.md).
 
-For Maya versions with dual-python support, PySide2 must be built for Python 2 and Python 3. The same build steps apply for both Python versions by changing paths and version numbers. When building PySide2 on Windows and Linux, you must use Maya's customized Python artifacts. The Python 2 and Python 3 artifacts are available at https://www.autodesk.com/developer-network/platform-technologies/maya. On Mac, Python 2 and 3 must be installed on your machine.
+Notes on external dependencies:
+
+For Maya versions with dual-python support, PySide2 must be built for Python 2 and Python 3. The same build steps apply for both Python versions by changing paths and version numbers. When building PySide2 on Windows and Linux, you must use Maya's customized Python artifacts. The Python 2 and Python 3 artifacts are available with the releases at https://github.com/autodesk-forks/pyside-setup/releases. On Mac, Python 2 and 3 must be installed on your machine.
+
+For libclang, prebuilt versions of the artifact are available in the Downloads section of the Qt website at https://download.qt.io/development_releases/prebuilt/libclang/. The following versions of libclang were used to build PySide2 for Maya:
+- Windows: libclang-release_100-based-windows-vs2019_64.7z
+- Mac: libclang-release_70-based-mac.7z
+- Linux: libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.7z
 
 Build Scripts:<a name="build-scripts-links"></a>
 
@@ -21,7 +28,6 @@ For the provided build scripts to work, you'll need to use the following directo
         - `python3`: contains the Python 3 artifact (on Windows/Linux) (link in the section above)
         - `libclang`: contains the libclang artifact
         - `openssl`: contains the OpenSSL 1.1.1 artifact (on Windows)
-    - `build/`: contains the intermediate PySide2 builds after building
     - `install/`: contains the final PySide2 builds after packaging (release and debug)
     - `src/`: contains the PySide2 source code from Autodesk public fork (top of git tree - the `pyside-setup.git` will be cloned into this directory)
         - `autodesk-maya-scripts/`: build scripts for each platform (Windows, Mac and Linux)
@@ -65,7 +71,7 @@ The build scripts do the following steps:
 
 Then, the packaging scripts perform the following steps:
 1. Define the locations of tools and external dependencies using variables
-2. Copy files from the `build/` directory to the `install/` directory
+2. Copy generated files into the `install/` directory
 3. Change RUNPATHS of resulting libraries (for Linux and Mac)
 
 Before using provided scripts, please review and adjust them as needed.
@@ -92,13 +98,14 @@ SET WORKSPACE_ROOT_PATH=LETTER:\\path\\to\\workspace_root
 REM Set the Qt version used to build PySide2
 SET QTVERSION=5.15.2
 
-REM Set the Python version for which PySide2 will be built
+REM Set the PySide2 version to be built
+SET PYSIDEVERSION=5.15.2
+
+REM Set the Python version for which PySide2 will be built (2 or 3)
 SET PYTHONMAJORVERSION=3
 
-REM Generate a unique name for the log file with the datetime at the end
-SET _TIME_DIGITS=%TIME:~0,5%
-SET _TIME=%_TIME_DIGITS::=%
-SET LOGFILE_NAME=pyside2_5_15_2_build_log_%DATE%-%_TIME%
+REM Define the log file name
+SET LOGFILE_NAME=pyside2_5_15_2_build_log
 
 REM Execute the build script from the src/ directory
 cd /D "%WORKSPACE_ROOT_PATH%\\src"
@@ -108,15 +115,10 @@ autodesk-maya-scripts\\adsk_maya_build_pyside2_win.bat %WORKSPACE_ROOT_PATH% > "
 Then, to run the package script:
 
 ```batch
-REM Set the Python version for which PySide2 will be built
-SET PYSIDEVERSION=5.15.2
+REM Define the log file name
+SET LOGFILE_NAME=pyside2_5_15_2_package_log
 
-REM Generate a unique name for the log file with the datetime at the end
-SET _TIME_DIGITS=%TIME:~0,5%
-SET _TIME=%_TIME_DIGITS::=%
-SET LOGFILE_NAME=pyside2_5_15_2_package_log_%DATE%-%_TIME%
-
-REM Execute the build script from the src/ directory
+REM Execute the package script from the src/ directory
 cd /D "%WORKSPACE_ROOT_PATH%\\src"
 autodesk-maya-scripts\\adsk_maya_package_pyside2_win.bat %WORKSPACE_ROOT_PATH% > "%WORKSPACE_ROOT_PATH%\\%LOGFILE_NAME%.txt" 2>&1
 ```
@@ -140,7 +142,7 @@ export LOGFILE_NAME=pyside2_5_15_2_build_log_`date +%Y-%m-%d-%H%M`
 
 # Execute the build script from the src/ directory
 cd "$WORKSPACE_ROOT_PATH/src"
-PYTHONMAJORVERSION=3 QTVERSION=5.15.2 bash $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_build_pyside2_osx.sh $WORKSPACE_ROOT_PATH &>$WORKSPACE_ROOT_PATH/$LOGFILE_NAME.txt
+PYTHONMAJORVERSION=3 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 bash $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_build_pyside2_osx.sh $WORKSPACE_ROOT_PATH &>$WORKSPACE_ROOT_PATH/$LOGFILE_NAME.txt
 ```
 
 Then, to run the package script:
@@ -180,7 +182,7 @@ export LOGFILE_NAME=pyside2_5_15_2_build_log_`date +%Y-%m-%d-%H%M`
 
 # Execute the build script from the src/ directory
 cd "$WORKSPACE_ROOT_PATH/src"
-scl enable devtoolset-9 'PYTHONMAJORVERSION=3 QTVERSION=5.15.2 bash $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_build_pyside2_lnx.sh $WORKSPACE_ROOT_PATH'
+scl enable devtoolset-9 'PYTHONMAJORVERSION=3 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 bash $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_build_pyside2_lnx.sh $WORKSPACE_ROOT_PATH'
 ```
 
 Then, to run the package script:
@@ -195,7 +197,7 @@ export LOGFILE_NAME=pyside2_5_15_2_package_log_`date +%Y-%m-%d-%H%M`
 
 # Execute the package script from the src/ directory
 cd "$WORKSPACE_ROOT_PATH/src"
-PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_package_pyside2_lnx.sh $WORKSPACE_ROOT_PATH
+PYTHONMAJORVERSION=3 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_package_pyside2_lnx.sh $WORKSPACE_ROOT_PATH
 ```
 
 [[Back to Top]](#top-header)
