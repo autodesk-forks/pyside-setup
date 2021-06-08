@@ -220,16 +220,5 @@ from shibokensupport.signature.lib import enum_sig
 if "PySide2" in sys.modules:
     # We publish everything under "PySide2.support.signature", again.
     move_into_pyside_package()
-    # PYSIDE-1019: Modify `__import__` to be `__feature__` aware.
-    # __feature__ is already in sys.modules, so this is actually no import
-    try:
-        import PySide2.support.__feature__
-        sys.modules["__feature__"] = PySide2.support.__feature__
-        PySide2.support.__feature__.original_import = __builtins__["__import__"]
-        __builtins__["__import__"] = PySide2.support.__feature__._import
-        # Maybe we should optimize that and change `__import__` from C, instead?
-    except ModuleNotFoundError:
-        print("__feature__ could not be imported. "
-              "This is an unsolved PyInstaller problem.", file=sys.stderr)
 
 # end of file
