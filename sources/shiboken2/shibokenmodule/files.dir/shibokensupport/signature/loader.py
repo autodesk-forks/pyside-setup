@@ -209,6 +209,19 @@ def move_into_pyside_package():
     put_into_package(None if orig_typing else PySide2.support.signature, typing)
     put_into_package(PySide2.support.signature, inspect)
 
+def add_pyside_feature_support():
+    # PYSIDE-1019: Modify `__import__` to be `__feature__` aware.
+    # __feature__ is already in sys.modules, so this is actually no import
+    try:
+        import PySide2.support.__feature__
+        sys.modules["__feature__"] = PySide2.support.__feature__
+        PySide2.support.__feature__.original_import = __builtins__["__import__"]
+        __builtins__["__import__"] = PySide2.support.__feature__._import
+        # Maybe we should optimize that and change `__import__` from C, instead?
+    except ModuleNotFoundError:
+        print("__feature__ could not be imported. "
+              "This is an unsolved PyInstaller problem.", file=sys.stderr)
+
 from shibokensupport.signature import mapping
 from shibokensupport.signature import errorhandler
 from shibokensupport.signature import layout
@@ -220,5 +233,14 @@ from shibokensupport.signature.lib import enum_sig
 if "PySide2" in sys.modules:
     # We publish everything under "PySide2.support.signature", again.
     move_into_pyside_package()
+
+    # MAYA-110705 - disable pyside __feature__ support until Qt 6.
+    # Removing this support removes the ugly stack traces that mention
+    # PySide2 when users' calls to import fail (due to whatever reason -
+    # import of some package that doesn't exist, even non-pyside
+    # related) after they have imported PySide2.
+    # If you are ok with that, and wish to regain access to snake_case
+    # and true_property, you can uncomment the below line.
+    #add_pyside_feature_support()
 
 # end of file
