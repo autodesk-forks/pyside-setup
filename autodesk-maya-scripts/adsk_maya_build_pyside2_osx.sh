@@ -3,7 +3,7 @@ set -u
 
 # Parameter 1 - Absolute path to workspace directory
 if [ $# -eq 0 ]; then
-    echo "Need to pass workspace directory to the script"
+	echo "Need to pass workspace directory to the script"
 	exit 1
 fi
 
@@ -23,13 +23,34 @@ else
 	echo "PYSIDEVERSION=${PYSIDEVERSION}"
 fi
 
-# Environment Variable - PYTHONMAJORVERSION - Version of Python for which PySide2 is built
-if [[ -z "$PYTHONMAJORVERSION" ]]; then
-	echo "PYTHONMAJORVERSION is undefined.  Example: export PYTHONMAJORVERSION=3"
+# Environment Variable - PYTHONVERSION - Version of Python for which PySide2 is built
+if [[ -z "$PYTHONVERSION" ]]; then
+	echo "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.7.7"
 	exit 1
-elif [[ ! ("$PYTHONMAJORVERSION" == "2" || "$PYTHONMAJORVERSION" == "3") ]]; then
-	echo "PYTHONMAJORVERSION should be '2' or '3'.  Example: export PYTHONMAJORVERSION=3"
+else
+	echo "PYTHONVERSION=${PYTHONVERSION}"
+fi
+
+# Extract MAJOR(A), MINOR(B), and REVISION(C) from PYTHONVERSION
+PYTHONVERSION_ARRAY=($(echo $PYTHONVERSION | tr "." "\n"))
+PYTHONVERSION_A=${PYTHONVERSION_ARRAY[0]}
+PYTHONVERSION_B=${PYTHONVERSION_ARRAY[1]}
+PYTHONVERSION_C=${PYTHONVERSION_ARRAY[2]}
+
+# Define Python Version Shortcuts (AB and A.B)
+PYTHONVERSION_AB=${PYTHONVERSION_A}${PYTHONVERSION_B}
+PYTHONVERSION_AdotB=${PYTHONVERSION_A}.${PYTHONVERSION_B}
+
+# Validate that the Python version given is within the accepted values
+if [[ ! ("$PYTHONVERSION_A" == "2" || "$PYTHONVERSION_A" == "3") ]]; then
+	echo "Python major version should be '2' or '3'. Example: export PYTHONVERSION=3.7.7"
 	exit 1
+fi
+
+# Python 2.7.X and 3.7.X artifacts have files with the pymalloc suffix
+export PYMALLOC_SUFFIX=
+if [ $PYTHONVERSION_B -eq 7 ]; then
+	export PYMALLOC_SUFFIX=m
 fi
 
 # Location of the workspace directory (root)
@@ -49,8 +70,8 @@ export CLANG_INSTALL_DIR=$EXTERNAL_DEPENDENCIES_DIR/libclang
 
 # Name of the Python executable
 export PYTHON_EXE=python
-if [ $PYTHONMAJORVERSION -eq 3 ]; then
-	export PYTHON_EXE=python3.7
+if [ $PYTHONVERSION_A -eq 3 ]; then
+	export PYTHON_EXE=python${PYTHONVERSION_AdotB}
 fi
 
 
@@ -76,24 +97,21 @@ export PREFIX_DIR=$WORKSPACE_DIR/build
 export DIST_DIR=$WORKSPACE_DIR/dist
 for BUILDTYPE in release debug;
 do
-	export PREFIX_DIR_RELEASE=$PREFIX_DIR/release
-	export PREFIX_DIR_DEBUG=$PREFIX_DIR/debug
-
 	if [ -e "${PREFIX_DIR}/${BUILDTYPE}" ]; then
-	    rm -rf "${PREFIX_DIR}/${BUILDTYPE}"
+		rm -rf "${PREFIX_DIR}/${BUILDTYPE}"
 	fi
 
 	if [ -e "${DIST_DIR}/${BUILDTYPE}" ]; then
-	    rm -rf "${DIST_DIR}/${BUILDTYPE}"
+		rm -rf "${DIST_DIR}/${BUILDTYPE}"
 	fi
 done
 
 for BUILDTYPE in release debug;
 do
 	export BUILDTYPE_STR="Release"
-    export EXTRA_SETUP_PY_OPTS=""
+	export EXTRA_SETUP_PY_OPTS=""
 	if [ "$BUILDTYPE" == "debug" ]; then
-	    export BUILDTYPE_STR="Debug"
+		export BUILDTYPE_STR="Debug"
 		export EXTRA_SETUP_PY_OPTS="--debug"
 	fi
 
@@ -109,7 +127,7 @@ do
 	export DIST_DIR_BUILDTYPE="${DIST_DIR}/${BUILDTYPE}"
 	mkdir -p "$DIST_DIR_BUILDTYPE"
 
-	$PYTHON_EXE setup.py install --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS $EXTRA_SETUP_PY_OPTS --prefix=$PREFIX_DIR_BUILDTYPE
+	$PYTHON_EXE setup.py install --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
 	if [ $? -eq 0 ]; then
 		echo "==== Success ==== $BUILDTYPE_STR Build"
 	else
@@ -117,7 +135,7 @@ do
 		exit 1
 	fi
 
-	$PYTHON_EXE setup.py bdist_wheel --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS $EXTRA_SETUP_PY_OPTS --dist-dir=$DIST_DIR_BUILDTYPE
+	$PYTHON_EXE setup.py bdist_wheel --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
 	if [ $? -eq 0 ]; then
 		echo "==== Success ==== $BUILDTYPE_STR Build Wheel"
 	else
@@ -126,7 +144,14 @@ do
 	fi
 
 	# Unpack the wheels - same suffix for both Python 2 and 3
-	export WHEEL_SUFFIX=${QTVERSION}-${PYSIDEVERSION}-cp${PYTHONMAJORVERSION}7-cp${PYTHONMAJORVERSION}7m-macosx_10_13_x86_64
+	export WHEEL_SUFFIX=${QTVERSION}-${PYSIDEVERSION}-cp${PYTHONVERSION_AB}-cp${PYTHONVERSION_AB}${PYMALLOC_SUFFIX}
+
+	# Python 2.7.X and 3.7.X were built with SDK version 10.13, while Python 3.9.X was built with SDK version 10.14
+	if [[ $PYTHONVERSION_AdotB == '3.9' ]]; then
+		export WHEEL_SUFFIX=${WHEEL_SUFFIX}-macosx_10_14_x86_64
+	else
+		export WHEEL_SUFFIX=${WHEEL_SUFFIX}-macosx_10_13_x86_64
+	fi
 
 	export PYSIDE2_WHEEL=PySide2-${WHEEL_SUFFIX}.whl
 	export SHIBOKEN2_WHEEL=shiboken2-${WHEEL_SUFFIX}.whl

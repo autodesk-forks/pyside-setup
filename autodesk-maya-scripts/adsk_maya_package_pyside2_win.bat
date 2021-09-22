@@ -28,11 +28,22 @@ if not defined PYSIDEVERSION (
     echo PYSIDEVERSION=%PYSIDEVERSION%
 )
 
+REM Environment Variable - PYTHONVERSION - Version of Python for which PySide2 is built
+if not defined PYTHONVERSION (
+    echo "PYTHONVERSION is NOT defined. Example: SET PYTHONVERSION=3.7.7"
+    echo "aborting."
+    exit /b 1
+)
+
+REM Extract MAJOR(A), MINOR(B), and REVISION(C) from PYTHONVERSION
+FOR /f "tokens=1,2,3 delims=." %%a IN ("%PYTHONVERSION%") DO set PYTHONVERSION_A=%%a& set PYTHONVERSION_B=%%b& set PYTHONVERSION_C=%%c
+
+REM Define Python Version Shortcut (A.B)
+set PYTHONVERSION_AdotB=%PYTHONVERSION_A%.%PYTHONVERSION_B%
+
 REM Determine if it is a Python 2 or Python 3 build
-set PY_MAJORVER=2
 set PATH_TO_MAYAPY_REGEX="1s/.*/\#\!bin\/mayapy2.exe/"
 if exist "pyside3_install" (
-    set PY_MAJORVER=3
     set PATH_TO_MAYAPY_REGEX="1s/.*/\#\!bin\/mayapy.exe/"
 )
 
@@ -65,17 +76,17 @@ REM Write PySide2 build information to a "pyside2_version" file
 REM instead of encoding the pyside version number in a directory name
 echo pyside2 %PYSIDEVERSION% > %INSTALL_DIR%\pyside2_version
 echo qt %QTVERSION% >> %INSTALL_DIR%\pyside2_version
-echo python major version %PY_MAJORVER% >> %INSTALL_DIR%\pyside2_version
+echo python version %PYTHONVERSION% >> %INSTALL_DIR%\pyside2_version
 
 
 REM Location of the root of packaged PySide2 artifacts (RelWithDebInfo and Debug)
-set ARTIFACT_ROOT_R=%INSTALL_DIR%\pyside%PY_MAJORVER%_install\py%PY_MAJORVER%.7-qt%QTVERSION%-64bit-relwithdebinfo
-set ARTIFACT_ROOT_D=%INSTALL_DIR%\pyside%PY_MAJORVER%dp_install\py%PY_MAJORVER%.7-qt%QTVERSION%-64bit-debug
+set ARTIFACT_ROOT_R=%INSTALL_DIR%\pyside%PYTHONVERSION_A%_install\py%PYTHONVERSION_AdotB%-qt%QTVERSION%-64bit-relwithdebinfo
+set ARTIFACT_ROOT_D=%INSTALL_DIR%\pyside%PYTHONVERSION_A%dp_install\py%PYTHONVERSION_AdotB%-qt%QTVERSION%-64bit-debug
 
-if exist pyside%PY_MAJORVER%_install (
+if exist pyside%PYTHONVERSION_A%_install (
 
     REM Copy PySide2 release build into the install directory
-    robocopy /mir /ns /nc /np pyside%PY_MAJORVER%_install %INSTALL_DIR%\pyside%PY_MAJORVER%_install /XD __pycache__
+    robocopy /mir /ns /nc /np pyside%PYTHONVERSION_A%_install %INSTALL_DIR%\pyside%PYTHONVERSION_A%_install /XD __pycache__
 
     REM Workaround: Since the pyside2-uic and pyside2-rcc wrappers are not installed in the build directory, we need to copy them from 
     REM the --prefix directory into the artifact's bin folder
@@ -106,10 +117,10 @@ if exist pyside%PY_MAJORVER%_install (
     sed -i -e %PATH_TO_MAYAPY_REGEX% %ARTIFACT_ROOT_R%\bin\pyside2-uic-script.py
     sed -i -e %PATH_TO_MAYAPY_REGEX% %ARTIFACT_ROOT_R%\bin\pyside2-rcc-script.py
 )
-if exist pyside%PY_MAJORVER%dp_install (
+if exist pyside%PYTHONVERSION_A%dp_install (
 
     REM Copy PySide2 debug build into the install directory
-    robocopy /mir /ns /nc /np pyside%PY_MAJORVER%dp_install %INSTALL_DIR%\pyside%PY_MAJORVER%dp_install /XD __pycache__
+    robocopy /mir /ns /nc /np pyside%PYTHONVERSION_A%dp_install %INSTALL_DIR%\pyside%PYTHONVERSION_A%dp_install /XD __pycache__
 
     REM Workaround: Since the pyside2-uic and pyside2-rcc wrappers are not installed in the build directory, we need to copy them from 
     REM the --prefix directory into the artifact's /bin folder

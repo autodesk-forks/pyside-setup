@@ -23,28 +23,34 @@ if not defined QTVERSION (
 
 REM Environment Variable - PYSIDEVERSION - Version of PySide2 built
 if not defined PYSIDEVERSION (
-    echo PYSIDEVERSION is undefined.  Example: SET PYSIDEVERSION=5.15.2
+    echo "PYSIDEVERSION is undefined.  Example: SET PYSIDEVERSION=5.15.2"
     exit /b 1
 ) else (
     echo PYSIDEVERSION=%PYSIDEVERSION%
 )
 
-REM Environment Variable - PYTHONMAJORVERSION - Version of Python for which PySide2 is built
-if not defined PYTHONMAJORVERSION (
-    echo "PYTHONMAJORVERSION is NOT defined. Example: SET PYTHONMAJORVERSION=3"
+REM Environment Variable - PYTHONVERSION - Version of Python for which PySide2 is built
+if not defined PYTHONVERSION (
+    echo "PYTHONVERSION is NOT defined. Example: SET PYTHONVERSION=3.7.7"
     echo "aborting."
     exit /b 1
 )
 
-REM Validate that the Python version given is within the accepted values
+REM Extract MAJOR(A), MINOR(B), and REVISION(C) from PYTHONVERSION
 setlocal EnableDelayedExpansion
+FOR /f "tokens=1,2,3 delims=." %%a IN ("%PYTHONVERSION%") DO set PYTHONVERSION_A=%%a& set PYTHONVERSION_B=%%b& set PYTHONVERSION_C=%%c
+
+REM Define Python Version Shortcuts (AB and A.B)
+set PYTHONVERSION_AB=%PYTHONVERSION_A%%PYTHONVERSION_B%
+
+REM Validate that the Python version given is within the accepted values
 set pymajorver_acceptable_values=2,3
-if "!pymajorver_acceptable_values:%PYTHONMAJORVERSION%=!" == "!pymajorver_acceptable_values!" (
-    echo "PYTHONMAJORVERSION should be '2' or '3'.  Example: SET PYTHONMAJORVERSION=3"
+if "!pymajorver_acceptable_values:%PYTHONVERSION_A%=!" == "!pymajorver_acceptable_values!" (
+    echo "Python major version should be '2' or '3'.  Example: SET PYTHONVERSION=3.7.7"
     echo "aborting."
     exit /b 1
 ) else (
-    echo PYTHONMAJORVERSION=%PYTHONMAJORVERSION%
+    echo PYTHONVERSION=%PYTHONVERSION%
 )
 
 
@@ -103,7 +109,6 @@ if exist %DIST_DIR_DEBUG% (
 mkdir "%DIST_DIR_RELWITHDEBINFO%"
 mkdir "%DIST_DIR_DEBUG%"
 
-
 REM Location of python 2 directory (in external dependencies)
 set PYTHON_DIR=%EXTERNAL_DEPENDENCIES_DIR%\python-2.7.11-Maya-2020+-win
 
@@ -113,9 +118,9 @@ set PYTHON_D_EXE=python_d.exe
 set PYTHONEXEPATH=%PYTHON_DIR%\libs;%PYTHON_DIR%\Scripts
 set WHEEL_EXE=%PYTHON_DIR%\libs\python.exe -m wheel
 
-if not "%PYTHONMAJORVERSION%" == "3" goto PYTHON3_HANDLING_DONE
+if not "%PYTHONVERSION_A%" == "3" goto PYTHON3_HANDLING_DONE
     REM Location of python 3 directory (in external dependencies)
-    set PYTHON_DIR=%EXTERNAL_DEPENDENCIES_DIR%\cpython\3.7.7
+    set PYTHON_DIR=%EXTERNAL_DEPENDENCIES_DIR%\cpython\%PYTHONVERSION%
 
     REM In Maya's python 3 module, the executables are located at the root of their respective build type folder (release or debug)
     set PYTHON_EXE=%PYTHON_DIR%\RelWithDebInfo\python.exe
@@ -124,6 +129,11 @@ if not "%PYTHONMAJORVERSION%" == "3" goto PYTHON3_HANDLING_DONE
     set WHEEL_EXE=%PYTHON_DIR%\RelWithDebInfo\Scripts\wheel.exe
 :PYTHON3_HANDLING_DONE
 
+REM Python 2.7.X and 3.7.X artifacts have files with the pymalloc suffix
+set PYMALLOC_SUFFIX=
+if not "%PYTHONVERSION_B%" == "7" goto PYMALLOC_HANDLING_DONE
+    set PYMALLOC_SUFFIX=m
+:PYMALLOC_HANDLING_DONE
 
 REM Add paths to libclang, jom and python executables to the PATH environment variable
 set PATH=%PYTHONEXEPATH%;%LLVM_INSTALL_DIR%\bin;%JOM_DIR%;%PATH%;
@@ -161,12 +171,12 @@ echo Prefix=.. >> %QTPATH%\bin\qt.conf
 REM Build PySide2 release version
 %PYTHON_EXE% -V
 
-if not "%PYTHONMAJORVERSION%" == "2" goto PYTHON2_INSTALL_REL_DONE
+if not "%PYTHONVERSION_A%" == "2" goto PYTHON2_INSTALL_REL_DONE
     REM Ensure that pip and its required modules are installed for Python 2 (release version)
     %PYTHON_EXE% -m pip install packaging
 :PYTHON2_INSTALL_REL_DONE
 
-if not "%PYTHONMAJORVERSION%" == "3" goto PYTHON3_INSTALL_REL_DONE	
+if not "%PYTHONVERSION_A%" == "3" goto PYTHON3_INSTALL_REL_DONE	
     REM Ensure that pip and its required modules are installed for Python 3 (release version)
     %PYTHON_EXE% -m ensurepip
     %PYTHON_EXE% -m pip install pip
@@ -181,9 +191,11 @@ if not "%PYTHONMAJORVERSION%" == "3" goto PYTHON3_INSTALL_REL_DONE
 %PYTHON_EXE% setup.py bdist_wheel --relwithdebinfo --qmake=%QTPATH%\bin\qmake.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --build-tests --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside2 Release ****" && exit /b 1
 
 REM Unpack the wheels
-set PYSIDE2_WHEEL=PySide2-%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONMAJORVERSION%7-cp%PYTHONMAJORVERSION%7m-win_amd64.whl
-set SHIBOKEN2_WHEEL=shiboken2-%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONMAJORVERSION%7-cp%PYTHONMAJORVERSION%7m-win_amd64.whl
-set SHIBOKEN2_GEN_WHEEL=shiboken2_generator-%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONMAJORVERSION%7-cp%PYTHONMAJORVERSION%7m-win_amd64.whl
+set WHEEL_SUFFIX=%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONVERSION_AB%-cp%PYTHONVERSION_AB%%PYMALLOC_SUFFIX%-win_amd64
+
+set PYSIDE2_WHEEL=PySide2-%WHEEL_SUFFIX%.whl
+set SHIBOKEN2_WHEEL=shiboken2-%WHEEL_SUFFIX%.whl
+set SHIBOKEN2_GEN_WHEEL=shiboken2_generator-%WHEEL_SUFFIX%.whl
 
 %WHEEL_EXE% unpack %DIST_DIR_RELWITHDEBINFO%\%PYSIDE2_WHEEL% --dest=%DIST_DIR_RELWITHDEBINFO%\
 %WHEEL_EXE% unpack %DIST_DIR_RELWITHDEBINFO%\%SHIBOKEN2_WHEEL% --dest=%DIST_DIR_RELWITHDEBINFO%\
@@ -193,12 +205,12 @@ set SHIBOKEN2_GEN_WHEEL=shiboken2_generator-%QTVERSION%-%PYSIDEVERSION%-cp%PYTHO
 REM Build PySide2 debug version
 %PYTHON_D_EXE% -V
 
-if not "%PYTHONMAJORVERSION%" == "2" goto PYTHON2_INSTALL_DEB_DONE
+if not "%PYTHONVERSION_A%" == "2" goto PYTHON2_INSTALL_DEB_DONE
     REM Ensure that pip and its required modules are installed for Python 2 (debug version)
     %PYTHON_D_EXE% -m pip install packaging
 :PYTHON2_INSTALL_DEB_DONE
 
-if not "%PYTHONMAJORVERSION%" == "3" goto PYTHON3_INSTALL_DEB_DONE
+if not "%PYTHONVERSION_A%" == "3" goto PYTHON3_INSTALL_DEB_DONE
     REM Ensure that pip and its required modules are installed for Python 3 (debug version)
     %PYTHON_D_EXE% -m ensurepip
     %PYTHON_D_EXE% -m pip install pip
@@ -212,9 +224,11 @@ if not "%PYTHONMAJORVERSION%" == "3" goto PYTHON3_INSTALL_DEB_DONE
 %PYTHON_D_EXE% setup.py bdist_wheel --debug --qmake=%QTPATH%\bin\qmake.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_DEBUG% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
 
 REM Unpack the wheels
-set PYSIDE2_WHEEL=PySide2-%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONMAJORVERSION%7-cp%PYTHONMAJORVERSION%7dm-win_amd64.whl
-set SHIBOKEN2_WHEEL=shiboken2-%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONMAJORVERSION%7-cp%PYTHONMAJORVERSION%7dm-win_amd64.whl
-set SHIBOKEN2_GEN_WHEEL=shiboken2_generator-%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONMAJORVERSION%7-cp%PYTHONMAJORVERSION%7dm-win_amd64.whl
+set WHEEL_SUFFIX=%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONVERSION_AB%-cp%PYTHONVERSION_AB%d%PYMALLOC_SUFFIX%-win_amd64
+
+set PYSIDE2_WHEEL=PySide2-%WHEEL_SUFFIX%.whl
+set SHIBOKEN2_WHEEL=shiboken2-%WHEEL_SUFFIX%.whl
+set SHIBOKEN2_GEN_WHEEL=shiboken2_generator-%WHEEL_SUFFIX%.whl
 
 %WHEEL_EXE% unpack %DIST_DIR_DEBUG%\%PYSIDE2_WHEEL% --dest=%DIST_DIR_DEBUG%\
 %WHEEL_EXE% unpack %DIST_DIR_DEBUG%\%SHIBOKEN2_WHEEL% --dest=%DIST_DIR_DEBUG%\

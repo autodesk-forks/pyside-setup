@@ -84,8 +84,8 @@ _Jom is a clone of nmake to support the execution of multiple independent comman
 
 External Dependencies:
 - Qt 5.15.2 (built using the Qt 5.15.2 for Maya Build Instructions)
-- Maya Python 2.7.11 artifact
-- Maya Python 3.7.7 artifact
+- Maya Python 2 artifact (2.7.11)
+- Maya Python 3 artifact (3.7.7 or 3.9.7)
 - Libclang 10 (release)
 - OpenSSL 1.1.1 (RelWithDebInfo) (must be the same artifact used to build Qt 5.15.2)
 
@@ -101,8 +101,8 @@ SET QTVERSION=5.15.2
 REM Set the PySide2 version to be built
 SET PYSIDEVERSION=5.15.2
 
-REM Set the Python version for which PySide2 will be built (2 or 3)
-SET PYTHONMAJORVERSION=3
+REM Set the Python version for which PySide2 will be built (format: A.B.C)
+SET PYTHONVERSION=3.9.7
 
 REM Define the log file name
 SET LOGFILE_NAME=pyside2_5_15_2_build_log
@@ -142,7 +142,7 @@ export LOGFILE_NAME=pyside2_5_15_2_build_log_`date +%Y-%m-%d-%H%M`
 
 # Execute the build script from the src/ directory
 cd "$WORKSPACE_ROOT_PATH/src"
-PYTHONMAJORVERSION=3 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 bash $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_build_pyside2_osx.sh $WORKSPACE_ROOT_PATH &>$WORKSPACE_ROOT_PATH/$LOGFILE_NAME.txt
+PYTHONVERSION=3.9.7 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 bash $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_build_pyside2_osx.sh $WORKSPACE_ROOT_PATH &>$WORKSPACE_ROOT_PATH/$LOGFILE_NAME.txt
 ```
 
 Then, to run the package script:
@@ -156,7 +156,7 @@ export LOGFILE_NAME=pyside2_5_15_2_package_log_`date +%Y-%m-%d-%H%M`
 
 # Execute the package script from the src/ directory
 cd "$WORKSPACE_ROOT_PATH/src"
-PYTHONMAJORVERSION=3 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_package_pyside2_osx.sh $WORKSPACE_ROOT_PATH &>$WORKSPACE_ROOT_PATH/$LOGFILE_NAME.txt
+PYTHONVERSION=3.9.7 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_package_pyside2_osx.sh $WORKSPACE_ROOT_PATH &>$WORKSPACE_ROOT_PATH/$LOGFILE_NAME.txt
 ```
 
 #### Linux  <a name="build-steps-linux-header"></a>
@@ -165,8 +165,8 @@ Similar to the Qt build process, the `patchelf` utility is needed to adjust the 
 
 External Dependencies:
 - Qt 5.15.2 (built using the Qt 5.15.2 for Maya Build Instructions)
-- Maya Python 2.7.11 artifact
-- Maya Python 3.7.7 artifact
+- Maya Python 2 artifact (2.7.11)
+- Maya Python 3 artifact (3.7.7 or 3.9.7)
 - Libclang 7 (release)
 
 Note: There is no `--openssl` option when building PySide2 5.15.2 on Linux. Nevertheless, PySide2 will build correctly even if Qt has `--openssl` enabled.
@@ -182,7 +182,7 @@ export LOGFILE_NAME=pyside2_5_15_2_build_log_`date +%Y-%m-%d-%H%M`
 
 # Execute the build script from the src/ directory
 cd "$WORKSPACE_ROOT_PATH/src"
-scl enable devtoolset-9 'PYTHONMAJORVERSION=3 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 bash $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_build_pyside2_lnx.sh $WORKSPACE_ROOT_PATH'
+scl enable devtoolset-9 'PYTHONVERSION=3.9.7 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 bash $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_build_pyside2_lnx.sh $WORKSPACE_ROOT_PATH'
 ```
 
 Then, to run the package script:
@@ -197,7 +197,7 @@ export LOGFILE_NAME=pyside2_5_15_2_package_log_`date +%Y-%m-%d-%H%M`
 
 # Execute the package script from the src/ directory
 cd "$WORKSPACE_ROOT_PATH/src"
-PYTHONMAJORVERSION=3 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_package_pyside2_lnx.sh $WORKSPACE_ROOT_PATH
+PYTHONVERSION=3.9.7 PYSIDEVERSION=5.15.2 QTVERSION=5.15.2 $WORKSPACE_ROOT_PATH/src/autodesk-maya-scripts/adsk_maya_package_pyside2_lnx.sh $WORKSPACE_ROOT_PATH
 ```
 
 [[Back to Top]](#top-header)
