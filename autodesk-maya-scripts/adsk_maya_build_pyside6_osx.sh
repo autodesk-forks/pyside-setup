@@ -24,12 +24,8 @@ else
 fi
 
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
-if [[ -z "$PYTHONVERSION" ]]; then
-    echo "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.9.5"
-    exit 1
-else
-    echo "PYTHONVERSION=${PYTHONVERSION}"
-fi
+# On macOS now, the python that is on the path is now used - so determine version from that.
+export PYTHONVERSION=$(python --version | awk '{print $2}')
 
 # Extract MAJOR(A), MINOR(B), and REVISION(C) from PYTHONVERSION
 PYTHONVERSION_ARRAY=($(echo $PYTHONVERSION | tr "." "\n"))
@@ -47,7 +43,7 @@ if [[ ! ("$PYTHONVERSION_A" == "3") ]]; then
     exit 1
 fi
 
-# Python 3.9.5 artifacts don't have any pymalloc suffix, but future python builds might. Leaving this in place.
+# Python 3.9.7 artifacts don't have any pymalloc suffix, but future python builds might. Leaving this in place.
 export PYMALLOC_SUFFIX=
 
 # Location of the workspace directory (root)
