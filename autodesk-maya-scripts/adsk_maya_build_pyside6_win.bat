@@ -31,7 +31,7 @@ if not defined PYSIDEVERSION (
 
 REM Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
 if not defined PYTHONVERSION (
-    echo "PYTHONVERSION is NOT defined. Example: SET PYTHONVERSION=3.9.5"
+    echo "PYTHONVERSION is NOT defined. Example: SET PYTHONVERSION=3.9.7"
     echo "aborting."
     exit /b 1
 )
@@ -46,7 +46,7 @@ set PYTHONVERSION_AB=%PYTHONVERSION_A%%PYTHONVERSION_B%
 REM Validate that the Python version given is within the accepted values
 set pymajorver_acceptable_values=3
 if "!pymajorver_acceptable_values:%PYTHONVERSION_A%=!" == "!pymajorver_acceptable_values!" (
-    echo "Python major version should be '3'.  Example: SET PYTHONVERSION=3.9.5"
+    echo "Python major version should be '3'.  Example: SET PYTHONVERSION=3.9.7"
     echo "aborting."
     exit /b 1
 ) else (
@@ -119,7 +119,7 @@ set PYTHON_D_EXE=%PYTHON_DIR%\Debug\python_d.exe
 set PYTHONEXEPATH=%PYTHON_DIR%\RelWithDebInfo;%PYTHON_DIR%\RelWithDebInfo\DLLs
 set WHEEL_EXE=%PYTHON_DIR%\RelWithDebInfo\Scripts\wheel.exe
 
-REM Python 3.9.5 artifacts don't have any pymalloc suffix, but future python builds might. Leaving this in place.
+REM Python 3.9.7 artifacts don't have any pymalloc suffix, but future python builds might. Leaving this in place.
 set PYMALLOC_SUFFIX=
 
 REM Add paths to libclang and python executables to the PATH environment variable

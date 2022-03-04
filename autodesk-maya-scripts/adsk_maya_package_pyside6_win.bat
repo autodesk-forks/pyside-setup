@@ -30,7 +30,7 @@ if not defined PYSIDEVERSION (
 
 REM Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
 if not defined PYTHONVERSION (
-    echo "PYTHONVERSION is NOT defined. Example: SET PYTHONVERSION=3.9.5"
+    echo "PYTHONVERSION is NOT defined. Example: SET PYTHONVERSION=3.9.7"
     echo "aborting."
     exit /b 1
 )
@@ -44,7 +44,7 @@ set PYTHONVERSION_AdotB=%PYTHONVERSION_A%.%PYTHONVERSION_B%
 REM Validate that the Python version given is within the accepted values
 set pymajorver_acceptable_values=3
 if "!pymajorver_acceptable_values:%PYTHONVERSION_A%=!" == "!pymajorver_acceptable_values!" (
-    echo "Python major version should be '3'.  Example: SET PYTHONVERSION=3.9.5"
+    echo "Python major version should be '3'.  Example: SET PYTHONVERSION=3.9.7"
     echo "aborting."
     exit /b 1
 ) else (
