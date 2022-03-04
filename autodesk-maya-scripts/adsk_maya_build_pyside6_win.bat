@@ -126,6 +126,9 @@ REM Add paths to libclang and python executables to the PATH environment variabl
 set PATH=%PYTHONEXEPATH%;%LLVM_INSTALL_DIR%\bin;%PATH%;
 echo PATH=%PATH%
 
+REM Add Python lib dir to the LIB environment variable so linking to python39.lib library works
+set ORIGLIB=%LIB%
+
 
 REM Validate that the directories of the external dependencies exist
 if not exist %LLVM_INSTALL_DIR% (
@@ -152,6 +155,9 @@ echo Prefix=.. >> %QTPATH%\bin\qt.conf
 
 REM Build PySide6 release version
 %PYTHON_EXE% -V
+
+set LIB=%ORIGLIB%;%PYTHON_DIR%\RelWithDebInfo\libs
+echo LIB=%LIB%
 
 REM Ensure that pip and its required modules are installed for Python 3 (release version)
 %PYTHON_EXE% -m ensurepip
@@ -180,6 +186,8 @@ set SHIBOKEN6_GEN_WHEEL=shiboken6_generator-%WHEEL_SUFFIX%.whl
 
 REM Build PySide6 debug version
 %PYTHON_D_EXE% -V
+
+set LIB=%ORIGLIB%;%PYTHON_DIR%\Debug\libs
 
 REM Ensure that pip and its required modules are installed for Python 3 (debug version)
 %PYTHON_D_EXE% -m ensurepip
