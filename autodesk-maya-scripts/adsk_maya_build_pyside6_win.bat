@@ -130,7 +130,9 @@ REM Python 3.9.7 artifacts don't have any pymalloc suffix, but future python bui
 set PYMALLOC_SUFFIX=
 
 REM Add paths to libclang and python executables to the PATH environment variable
-set PATH=%PYTHONEXEPATH%;%LLVM_INSTALL_DIR%\bin;%PATH%;
+set PATH=%PYTHONEXEPATH%;%LLVM_INSTALL_DIR%\bin;%PATH%
+REM Add path to <qtdir>/bin - though this should not be necessary given that we provide a path to the qtpaths tool to setup.py. See PYSIDE-1844.
+set PATH=%QTPATH%\bin;%PATH%
 echo PATH=%PATH%
 
 REM Add Python lib dir to the LIB environment variable so linking to python39.lib library works
@@ -176,8 +178,8 @@ REM Ensure that pip and its required modules are installed for Python 3 (release
 REM Before setting up, make sure that `slots` keyword is properly defined
 sed -i -e 's/\(PyType_Slot\ \*slots\)_/\1/' %PYTHON_DIR%/RelWithDebInfo/include/object.h
 
-%PYTHON_EXE% setup.py install --relwithdebinfo --qmake=%QTPATH%\bin\qmake.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside6 Release ****" && exit /b 1
-%PYTHON_EXE% setup.py bdist_wheel --relwithdebinfo --qmake=%QTPATH%\bin\qmake.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside6 bdist_wheel Release ****" && exit /b 1
+%PYTHON_EXE% setup.py install --relwithdebinfo --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside6 Release ****" && exit /b 1
+%PYTHON_EXE% setup.py bdist_wheel --relwithdebinfo --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside6 bdist_wheel Release ****" && exit /b 1
 
 REM Unpack the wheels
 set WHEEL_SUFFIX=%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONVERSION_AB%-cp%PYTHONVERSION_AB%%PYMALLOC_SUFFIX%-win_amd64
