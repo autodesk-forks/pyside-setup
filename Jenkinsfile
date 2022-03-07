@@ -591,6 +591,8 @@ def Initialize(String buildConfig) {
         }
 
         (QtArtifact_Win, QtArtifact_Lnx, QtArtifact_Mac) = getQtArtifacts(params.QtBuildID, "${artifactoryRoot}api/storage/oss-stg-generic/Qt/${qtVersion}/Maya")
+        // Temp - using manual 6.2.3 Windows Qt build
+        QtArtifact_Win = "team-maya-generic/Qt/6.2.3/Maya/2022-03-01-MANUAL/202203012129-8265d1ab-Maya-Qt-Windows.zip"
         println("Win: ${QtArtifact_Win}, Linux: ${QtArtifact_Lnx}, Mac: ${QtArtifact_Mac}")
 
         if (QtArtifact_Win == "" || QtArtifact_Lnx == "" || QtArtifact_Mac == "") {
@@ -609,7 +611,11 @@ def Initialize(String buildConfig) {
 def Setup(String buildConfig) {
     def stage = "Setup"
     env.PYSIDEVERSION = "${pysideVersion}"
+    if (!isUnix()){
+        qtVersion = "6.2.3"
+    }
     env.QTVERSION = "${qtVersion}"
+
     env.PYTHONVERSION = "${params.PythonVersion}"
 
     try {
