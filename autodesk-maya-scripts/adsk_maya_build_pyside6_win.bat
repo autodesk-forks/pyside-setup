@@ -1,21 +1,27 @@
 @echo off
 REM Parameter 1 - Absolute path to workspace directory
 if [%1]==[] (
-    echo "error: need to pass workspace directory to the script"
-    echo "aborting."
+    echo error: need to pass workspace directory to the script
+    echo aborting.
     exit /b 1
 )
 REM Validate that the workspace directory exists
 if not exist %1 (
-    echo "error: workspace directory does not exist. Please pass a valid directory to the script."
-    echo "aborting."
+    echo error: workspace directory does not exist. Please pass a valid directory to the script.
+    echo aborting.
+    exit /b 1
+)
+
+if not exist setup.py (
+    echo error: this script needs to be executed from the source directory
+    echo aborting.
     exit /b 1
 )
 
 REM Environment Variable - QTVERSION - Version of Qt used to build PySide6
 if not defined QTVERSION (
-    echo "QTVERSION is NOT defined. Example: SET QTVERSION=6.2.3"
-    echo "aborting."
+    echo QTVERSION is NOT defined. Example: SET QTVERSION=6.2.3
+    echo aborting.
     exit /b 1
 ) else (
     echo QTVERSION=%QTVERSION%
@@ -23,7 +29,8 @@ if not defined QTVERSION (
 
 REM Environment Variable - PYSIDEVERSION - Version of PySide6 built
 if not defined PYSIDEVERSION (
-    echo "PYSIDEVERSION is undefined.  Example: SET PYSIDEVERSION=6.2.3"
+    echo PYSIDEVERSION is undefined.  Example: SET PYSIDEVERSION=6.2.3
+    echo aborting.
     exit /b 1
 ) else (
     echo PYSIDEVERSION=%PYSIDEVERSION%
@@ -31,8 +38,8 @@ if not defined PYSIDEVERSION (
 
 REM Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
 if not defined PYTHONVERSION (
-    echo "PYTHONVERSION is NOT defined. Example: SET PYTHONVERSION=3.9.7"
-    echo "aborting."
+    echo PYTHONVERSION is NOT defined. Example: SET PYTHONVERSION=3.9.7
+    echo aborting.
     exit /b 1
 )
 
@@ -46,8 +53,8 @@ set PYTHONVERSION_AB=%PYTHONVERSION_A%%PYTHONVERSION_B%
 REM Validate that the Python version given is within the accepted values
 set pymajorver_acceptable_values=3
 if "!pymajorver_acceptable_values:%PYTHONVERSION_A%=!" == "!pymajorver_acceptable_values!" (
-    echo "Python major version should be '3'.  Example: SET PYTHONVERSION=3.9.7"
-    echo "aborting."
+    echo Python major version should be '3'.  Example: SET PYTHONVERSION=3.9.7
+    echo aborting.
     exit /b 1
 ) else (
     echo PYTHONVERSION=%PYTHONVERSION%
@@ -133,17 +140,17 @@ set ORIGLIB=%LIB%
 REM Validate that the directories of the external dependencies exist
 if not exist %LLVM_INSTALL_DIR% (
     echo error: LLVM_INSTALL_DIR %LLVM_INSTALL_DIR% does not exist.
-    echo "aborting."
+    echo aborting.
     exit /b 1
 )
 if not exist %QTPATH% (
     echo error: Qt path %QTPATH% does not exist.
-    echo "aborting."
+    echo aborting.
     exit /b 1
 )
 if not exist %OPENSSLPATH% (
     echo error: OPENSSLPATH %OPENSSLPATH% does not exist.
-    echo "aborting."
+    echo aborting.
     exit /b 1
 )
 
