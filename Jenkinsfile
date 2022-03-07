@@ -640,11 +640,11 @@ def Setup(String buildConfig) {
         }
         else if (checkOS() == "Linux") {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Linux.tar.gz"
-            artifacts[buildConfig]  = ["${QtArtifact_Lnx}", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz", "team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-1.tar.gz"]
+            artifacts[buildConfig]  = ["${QtArtifact_Lnx}", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz", "team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-2.tar.gz"]
         }
         else {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Windows.zip"
-            artifacts[buildConfig]  = ["${QtArtifact_Win}", "team-maya-generic/libclang/release_100-based/libclang-release_100-based-windows-vs2019_64.zip", "team-maya-generic/openssl/1.1.1g/openssl-1.1.1g-win-vc140.zip", "team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip", "team-maya-generic/python/3.9.7/cpython-3.9.7-win-003.zip"]
+            artifacts[buildConfig]  = ["${QtArtifact_Win}", "team-maya-generic/libclang/release_100-based/libclang-release_100-based-windows-vs2019_64.zip", "team-maya-generic/openssl/1.1.1g/openssl-1.1.1g-win-vc140.zip", "team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip", "team-maya-generic/python/3.9.7/cpython-3.9.7-win-001.zip"]
         }
         print "$buildConfig artifacts: ${artifacts[buildConfig]}"
 
