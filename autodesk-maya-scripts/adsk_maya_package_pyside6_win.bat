@@ -79,25 +79,35 @@ mkdir "%INSTALL_DIR%"
 
 REM Write PySide6 build information to a "pyside6_version" file 
 REM instead of encoding the pyside version number in a directory name
-echo pyside6 %PYSIDEVERSION% > %INSTALL_DIR%\pyside6_version
-echo qt %QTVERSION% >> %INSTALL_DIR%\pyside6_version
-echo python version %PYTHONVERSION% >> %INSTALL_DIR%\pyside6_version
+echo PySide6 %PYSIDEVERSION% > %INSTALL_DIR%\pyside6_version
+echo Qt %QTVERSION% >> %INSTALL_DIR%\pyside6_version
+echo Python version %PYTHONVERSION% >> %INSTALL_DIR%\pyside6_version
 
 
 REM Location of the root of packaged PySide6 artifacts (RelWithDebInfo and Debug)
-set ARTIFACT_ROOT_R=%INSTALL_DIR%\pyside%PYTHONVERSION_A%_install\py%PYTHONVERSION_AdotB%-qt%QTVERSION%-64bit-relwithdebinfo
-set ARTIFACT_ROOT_D=%INSTALL_DIR%\pyside%PYTHONVERSION_A%dp_install\py%PYTHONVERSION_AdotB%-qt%QTVERSION%-64bit-debug
+set BUILD_DIRNAME_R=qfp-py%PYTHONVERSION_AdotB%-qt%QTVERSION%-64bit-relwithdebinfo
+set BUILD_DIRNAME_D=qfpdp-py%PYTHONVERSION_AdotB%-qt%QTVERSION%-64bit-debug
+set ARTIFACT_ROOT_R=%INSTALL_DIR%\%BUILD_DIRNAME_R%
+set ARTIFACT_ROOT_D=%INSTALL_DIR%\%BUILD_DIRNAME_D%
 
-if exist pyside6_install (
+if exist build\%BUILD_DIRNAME_R% (
 
     REM Copy PySide6 release build into the install directory
-    robocopy /mir /ns /nc /np pyside6_install %INSTALL_DIR%\pyside6_install /XD __pycache__
+    robocopy /mir /ns /nc /np build\%BUILD_DIRNAME_R%\install %ARTIFACT_ROOT_R% /XD __pycache__
 
     REM Workaround: Since the pyside6-uic and pyside6-rcc wrappers are not installed in the build directory, we need to copy them from 
     REM the --prefix directory into the artifact's bin folder
-    for %%R in (pyside6-uic.exe, pyside6-uic-script.py, pyside6-rcc.exe, pyside6-rcc-script.py) do (
-        robocopy /ns /nc /np %PREFIX_DIR%\RelWithDebInfo\Scripts %ARTIFACT_ROOT_R%\bin %%R
-    )
+    robocopy /ns /nc /np %PREFIX_DIR%\RelWithDebInfo\Scripts %ARTIFACT_ROOT_R%\bin
+REM    for %%R in (pyside6-assistant.exe, pyside6-assistant-script.py, ^
+REM                pyside6-designer.exe, pyside6-designer-script.py, ^
+REM                pyside6-genpyi.exe, pyside6-genpyi-script.py, ^
+REM                pyside6-linguist.exe, pyside6-linguist-script.py, ^
+REM                pyside6-lrelease.exe, pyside6-lrelease-script.py, ^
+REM                pyside6-lupdate.exe, pyside6-lupdate-script.py, ^
+REM                pyside6-uic.exe, pyside6-uic-script.py, ^
+REM                pyside6-rcc.exe, pyside6-rcc-script.py) do (
+REM         robocopy /ns /nc /np %PREFIX_DIR%\RelWithDebInfo\Scripts %ARTIFACT_ROOT_R%\bin %%R
+REM     )
 
     REM Copy the .dist-info metadata folders, since the pyside6-uic and pyside6-rcc wrappers rely on [console_scripts] entrypoints.
     for %%R in (PySide6, shiboken6, shiboken6_generator) do (
@@ -114,24 +124,33 @@ if exist pyside6_install (
     REM pyside_tool.py through console_scripts entrypoints.
     robocopy /mir /ns /nc /np %PREFIX_DIR%\RelWithDebInfo\Lib\site-packages\PySide6\scripts %ARTIFACT_ROOT_R%\lib\site-packages\PySide6\scripts /XD __pycache__
 
+    REM This workaround disabled now, as it should be fixed in PySide6.
     REM Workaround: Until the issue is addressed within PySide6 build scripts, we manually copy the 'support' PySide6 submodule
     REM into the build to prevent the "__feature__ could not be imported" error.
-    robocopy /mir /ns /nc /np %PREFIX_DIR%\RelWithDebInfo\Lib\site-packages\PySide6\support %ARTIFACT_ROOT_R%\lib\site-packages\PySide6\support /XD __pycache__
+    REM robocopy /mir /ns /nc /np %PREFIX_DIR%\RelWithDebInfo\Lib\site-packages\PySide6\support %ARTIFACT_ROOT_R%\lib\site-packages\PySide6\support /XD __pycache__
     
     REM Replace interpreter path for relative path to mayapy
     sed -i -e %PATH_TO_MAYAPY_REGEX% %ARTIFACT_ROOT_R%\bin\pyside6-uic-script.py
     sed -i -e %PATH_TO_MAYAPY_REGEX% %ARTIFACT_ROOT_R%\bin\pyside6-rcc-script.py
 )
-if exist pyside6dp_install (
+if exist build\%BUILD_DIRNAME_D% (
 
     REM Copy PySide6 debug build into the install directory
-    robocopy /mir /ns /nc /np pyside6dp_install %INSTALL_DIR%\pyside6%dp_install /XD __pycache__
+    robocopy /mir /ns /nc /np build\%BUILD_DIRNAME_D%\install %ARTIFACT_ROOT_D% /XD __pycache__
 
     REM Workaround: Since the pyside6-uic and pyside6-rcc wrappers are not installed in the build directory, we need to copy them from 
     REM the --prefix directory into the artifact's /bin folder
-    for %%D in (pyside6-uic.exe, pyside6-uic-script.py, pyside6-rcc.exe, pyside6-rcc-script.py) do (
-        robocopy /ns /nc /np %PREFIX_DIR%\RelWithDebInfo\Scripts %ARTIFACT_ROOT_D%\bin %%D
-    )
+    robocopy /ns /nc /np %PREFIX_DIR%\Debug\Scripts %ARTIFACT_ROOT_D%\bin
+REM     for %%D in (pyside6-assistant.exe, pyside6-assistant-script.py, ^
+REM                 pyside6-designer.exe, pyside6-designer-script.py, ^
+REM                 pyside6-genpyi.exe, pyside6-genpyi-script.py, ^
+REM                 pyside6-linguist.exe, pyside6-linguist-script.py, ^
+REM                 pyside6-lrelease.exe, pyside6-lrelease-script.py, ^
+REM                 pyside6-lupdate.exe, pyside6-lupdate-script.py, ^
+REM                 pyside6-uic.exe, pyside6-uic-script.py, ^
+REM                 pyside6-rcc.exe, pyside6-rcc-script.py) do (
+REM         robocopy /ns /nc /np %PREFIX_DIR%\RelWithDebInfo\Scripts %ARTIFACT_ROOT_D%\bin %%D
+REM     )
     
     REM Copy the .dist-info metadata folders, since the pyside6-uic and pyside6-rcc wrappers entry_points rely on them.
     for %%D in (PySide6, shiboken6, shiboken6_generator) do (
@@ -148,9 +167,10 @@ if exist pyside6dp_install (
     REM pyside_tool.py through [console_scripts] entrypoints.
     robocopy /mir /ns /nc /np %PREFIX_DIR%\Debug\Lib\site-packages\PySide6\scripts %ARTIFACT_ROOT_D%\lib\site-packages\PySide6\scripts /XD __pycache__
 
+    REM This workaround disabled now, as it should be fixed in PySide6.
     REM Workaround: Until the issue is addressed within PySide6 build scripts, we manually copy the 'support' PySide6 submodule
     REM into the build to prevent the "__feature__ could not be imported" error.
-    robocopy /mir /ns /nc /np %PREFIX_DIR%\Debug\Lib\site-packages\PySide6\support %ARTIFACT_ROOT_D%\lib\site-packages\PySide6\support /XD __pycache__
+    REM robocopy /mir /ns /nc /np %PREFIX_DIR%\Debug\Lib\site-packages\PySide6\support %ARTIFACT_ROOT_D%\lib\site-packages\PySide6\support /XD __pycache__
     
     REM Replace interpreter path for relative path to mayapy
     sed -i -e %PATH_TO_MAYAPY_REGEX% %ARTIFACT_ROOT_D%\bin\pyside6-uic-script.py
