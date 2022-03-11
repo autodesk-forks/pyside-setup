@@ -45,10 +45,14 @@ pythonVersionB = pythonVersionArray[1]
 pythonVersionAdotB = "${pythonVersionA}.${pythonVersionB}"
 
 // Email Notifications - List of Recipients
-default_Recipients = ["Bang.Nguyen@autodesk.com"]
-DEVTeam_Recipients = ["marc-andre.brodeur@autodesk.com"]
-ENGOPSTeam_Recipients = ["Bang.Nguyen@autodesk.com", "vishal.dalal@autodesk.com"]
-QtTeam_Recipients = ["Daniela.Stajic@autodesk.com", "Wayne.Arnold@autodesk.com", "Richard.Langlois@autodesk.com", "william.smith@autodesk.com", "Bang.Nguyen@autodesk.com"]
+default_Recipients = ["Keith.Kyzivat@autodesk.com"]
+DEVTeam_Recipients = []
+ENGOPSTeam_Recipients = []
+QtTeam_Recipients = []
+//default_Recipients = ["Bang.Nguyen@autodesk.com"]
+//DEVTeam_Recipients = ["marc-andre.brodeur@autodesk.com"]
+//ENGOPSTeam_Recipients = ["Bang.Nguyen@autodesk.com", "vishal.dalal@autodesk.com"]
+//QtTeam_Recipients = ["Daniela.Stajic@autodesk.com", "Wayne.Arnold@autodesk.com", "Richard.Langlois@autodesk.com", "william.smith@autodesk.com", "Bang.Nguyen@autodesk.com"]
 
 buildStages = [
     "Initialize":[name:'Initialize', emailTO: (ENGOPSTeam_Recipients + default_Recipients).join(", ")],
