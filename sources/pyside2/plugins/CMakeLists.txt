@@ -9,7 +9,7 @@ set(ui_plugin_moc
     customwidget.h
     customwidgets.h
 )
-include_directories(${Qt${QT_MAJOR_VERSION}Designer_INCLUDE_DIRS})
+include_directories(${_Qt${QT_MAJOR_VERSION}UiPlugin_OWN_INCLUDE_DIRS})
 
 if (${QT_MAJOR_VERSION} GREATER_EQUAL 6)
     qt6_wrap_cpp(MOC_FILES ${ui_plugin_moc})
