@@ -127,7 +127,7 @@ do
 	export DIST_DIR_BUILDTYPE="${DIST_DIR}/${BUILDTYPE}"
 	mkdir -p "$DIST_DIR_BUILDTYPE"
 
-	$PYTHON_EXE setup.py install --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
+	$PYTHON_EXE setup.py install --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS --macos-deployment-target=11.0 --macos-arch="x86_64;arm64"  --skip-modules=Help
 	if [ $? -eq 0 ]; then
 		echo "==== Success ==== $BUILDTYPE_STR Build"
 	else
@@ -135,7 +135,8 @@ do
 		exit 1
 	fi
 
-	$PYTHON_EXE setup.py bdist_wheel --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
+	$PYTHON_EXE setup.py bdist_wheel --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS --skip-modules=Help --macos-deployment-target=11.0 --macos-arch="x86_64;arm64"
+
 	if [ $? -eq 0 ]; then
 		echo "==== Success ==== $BUILDTYPE_STR Build Wheel"
 	else
@@ -143,15 +144,10 @@ do
 		exit 1
 	fi
 
-	# Unpack the wheels - same suffix for both Python 2 and 3
-	export WHEEL_SUFFIX=${QTVERSION}-${PYSIDEVERSION}-cp${PYTHONVERSION_AB}-cp${PYTHONVERSION_AB}${PYMALLOC_SUFFIX}
+	# Unpack the wheels
+	export WHEEL_SUFFIX=${PYSIDEVERSION}-${QTVERSION}-cp${PYTHONVERSION_AB}-cp${PYTHONVERSION_AB}${PYMALLOC_SUFFIX}
 
-	# Python 2.7.X and 3.7.X were built with SDK version 10.13, while Python 3.9.X was built with SDK version 10.14
-	if [[ $PYTHONVERSION_AdotB == '3.9' ]]; then
-		export WHEEL_SUFFIX=${WHEEL_SUFFIX}-macosx_10_14_x86_64
-	else
-		export WHEEL_SUFFIX=${WHEEL_SUFFIX}-macosx_10_13_x86_64
-	fi
+	export WHEEL_SUFFIX=${WHEEL_SUFFIX}-macosx_11_0_universal2
 
 	export PYSIDE2_WHEEL=PySide2-${WHEEL_SUFFIX}.whl
 	export SHIBOKEN2_WHEEL=shiboken2-${WHEEL_SUFFIX}.whl
