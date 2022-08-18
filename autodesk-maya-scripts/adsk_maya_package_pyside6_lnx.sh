@@ -1,18 +1,17 @@
-if [ ! -e README.pyside6.md ] ; then
-    echo "Pyside2 packaging script not in correct current directory"
-    echo "ABORTING: Current directory incorrect."
+if [ ! -f README.pyside6.md ] ; then
+    echo >&2 "Please execute from the root of the pyside-setup repository."
     exit 1
 fi
 
 # Parameter 1 - Absolute path to workspace directory
 if [ $# -eq 0 ]; then
-    echo "Need to pass workspace directory to the script"
+    echo >&2 "Need to pass workspace directory to the script."
     exit 1
 fi
 
 # Environment Variable - QTVERSION - Version of Qt used to build PySide6
 if [[ -z "${QTVERSION}" ]]; then
-    echo "QTVERSION is undefined. Example: export QTVERSION=6.2.3"
+    echo >&2 "QTVERSION is undefined. Example: export QTVERSION=6.2.3"
     exit 1
 else
     echo "QTVERSION=${QTVERSION}"
@@ -20,7 +19,7 @@ fi
 
 # Environment Variable - PYSIDEVERSION - Version of PySide6 built
 if [[ -z "${PYSIDEVERSION}" ]]; then
-    echo "PYSIDEVERSION is undefined. Example: export PYSIDEVERSION=6.2.3"
+    echo >&2 "PYSIDEVERSION is undefined. Example: export PYSIDEVERSION=6.2.3"
     exit 1
 else
     echo "PYSIDEVERSION=${PYSIDEVERSION}"
@@ -28,7 +27,7 @@ fi
 
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
 if [[ -z "$PYTHONVERSION" ]]; then
-    echo "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.9.7"
+    echo >&2 "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.9.7"
     exit 1
 else
     echo "PYTHONVERSION=${PYTHONVERSION}"
@@ -45,8 +44,9 @@ PYTHONVERSION_AB=${PYTHONVERSION_A}${PYTHONVERSION_B}
 PYTHONVERSION_AdotB=${PYTHONVERSION_A}.${PYTHONVERSION_B}
 
 # Validate that the Python version given is within the accepted values
-if [[ ! ("$PYTHONVERSION_A" == "2" || "$PYTHONVERSION_A" == "3") ]]; then
-    echo "Python major version should be '2' or '3'. Example: export PYTHONVERSION=3.9.7"
+if [[ ! "$PYTHONVERSION_A" == "3" ]]; then
+    echo >&2 "Only Python 3 is supported, please specify a Python 3 version."
+    echo >&2 "Example: export PYTHONVERSION=3.9.7"
     exit 1
 fi
 
