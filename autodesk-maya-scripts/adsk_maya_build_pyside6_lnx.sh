@@ -56,19 +56,15 @@ export EXTERNAL_DEPENDENCIES_DIR=$WORKSPACE_DIR/external_dependencies
 # Location of Qt build directory (in external dependencies)
 export QTPATH=$EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION
 
-# Location of liblang directory (in external dependencies)
-export CLANG_INSTALL_DIR=$EXTERNAL_DEPENDENCIES_DIR/libclang
-
-# Location of CMake directory (in external dependencies)
-# Latest CMake version in CentOS 7.6 is 2.8.x.x, but PySide6 requires a minimum of CMake 3.19
-export CMAKE_DIR=$EXTERNAL_DEPENDENCIES_DIR/cmake-3.22.1-linux-x86_64/bin
-
 # Location of Python directory (in external dependencies)
 export PYTHONEXE_DIR=$EXTERNAL_DEPENDENCIES_DIR/cpython/${PYTHONVERSION}/RelWithDebInfo/bin
 export PYTHONEXE_D_DIR=$EXTERNAL_DEPENDENCIES_DIR/cpython/${PYTHONVERSION}/Debug/bin
 
 # Name of the Python executable
 export PYTHON_EXE=python${PYTHONVERSION_AdotB}
+
+# Allow PySide6 build to find libclang/llvm directory (same way Coin does it)
+export LLVM_INSTALL_DIR=$LLVM_DYNAMIC_LIBS_100
 
 # Cleanup PREFIX and DIST dirs. See below for their definition.
 export PREFIX_DIR=$WORKSPACE_DIR/build
@@ -139,8 +135,8 @@ do
     $PYTHON_EXE -m pip install wheel==0.34.1
     $PYTHON_EXE -m pip install packaging
 
-    # Add CMake (>3.19) to the PATH to ensure it is chosen first instead of default version 2.8.x.x of CentOS 7
-    export PATH=$CMAKE_DIR:$PATH
+    # CMake is now installed the same way Qt CI does it, which places it in the path in the build user's bashrc
+    # So it no longer needs to be explicitly added to the path.
 
     # Build PySide6
     $PYTHON_EXE setup.py install --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
