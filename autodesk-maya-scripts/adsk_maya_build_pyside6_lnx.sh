@@ -1,12 +1,19 @@
+#!/usr/bin/env bash
+
+if [[ ! -f README.pyside6.md ]]; then
+    echo >&2 "Please execute from the root of the pyside-setup repository."
+    exit 1
+fi
+
 # Parameter 1 - Absolute path to workspace directory
 if [ $# -eq 0 ]; then
-    echo "Need to pass workspace directory to the script"
+    echo >&2 "Need to pass workspace directory to the script"
     exit 1
 fi
 
 # Environment Variable - QTVERSION - Version of Qt used to build PySide6
 if [[ -z "${QTVERSION}" ]]; then
-    echo "QTVERSION is undefined. Example: export QTVERSION=6.2.3"
+    echo >&2 "QTVERSION is undefined. Example: export QTVERSION=6.2.3"
     exit 1
 else
     echo "QTVERSION=${QTVERSION}"
@@ -14,7 +21,7 @@ fi
 
 # Environment Variable - PYSIDEVERSION - Version of PySide6 built
 if [[ -z "${PYSIDEVERSION}" ]]; then
-    echo "PYSIDEVERSION is undefined. Example: export PYSIDEVERSION=6.2.3"
+    echo >&2 "PYSIDEVERSION is undefined. Example: export PYSIDEVERSION=6.2.3"
     exit 1
 else
     echo "PYSIDEVERSION=${PYSIDEVERSION}"
@@ -22,7 +29,7 @@ fi
 
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
 if [[ -z "$PYTHONVERSION" ]]; then
-    echo "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.9.7"
+    echo >&2 "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.9.7"
     exit 1
 else
     echo "PYTHONVERSION=${PYTHONVERSION}"
@@ -39,8 +46,9 @@ PYTHONVERSION_AB=${PYTHONVERSION_A}${PYTHONVERSION_B}
 PYTHONVERSION_AdotB=${PYTHONVERSION_A}.${PYTHONVERSION_B}
 
 # Validate that the Python version given is within the accepted values
-if [[ ! ("$PYTHONVERSION_A" == "3") ]]; then
-    echo "Python major version should be '2' or '3'. Example: export PYTHONVERSION=3.9.7"
+if [[ ! "$PYTHONVERSION_A" == "3" ]]; then
+    echo >&2 "Only Python 3 is supported, please specify a Python 3 version."
+    echo >&2 "Example: export PYTHONVERSION=3.9.7"
     exit 1
 fi
 
@@ -95,17 +103,20 @@ export NUMBER_OF_PROCESSORS=`cat /proc/cpuinfo | grep processor | wc -l`
 
 for BUILDTYPE in release debug;
 do
-    export BUILDTYPE_STR="Release"
-    export PYTHONEXEPATH=$PYTHONEXE_DIR
-    export EXTRA_SETUP_PY_OPTS=""
-    export DEBUG_SUFFIX=
-
     if [ "$BUILDTYPE" == "debug" ]; then
         export BUILDTYPE_STR="Debug"
         export PYTHONEXEPATH=$PYTHONEXE_D_DIR
         export EXTRA_SETUP_PY_OPTS="--debug"
         export DEBUG_SUFFIX=d
+    else
+        export BUILDTYPE_STR="Release"
+        export PYTHONEXEPATH=$PYTHONEXE_DIR
+        export EXTRA_SETUP_PY_OPTS=""
+        export DEBUG_SUFFIX=
     fi
+
+    # Add Python executable to the PATH
+    export PATH=$PYTHONEXEPATH:$OLDPATH
 
     # By default, the pyside6-uic and pyside6-rcc wrappers are installed in the Python directory during the install step.
     # Using the --prefix option, we specify a different location where to output the files, which makes it easier to copy
@@ -119,21 +130,18 @@ do
     export DIST_DIR_BUILDTYPE="${DIST_DIR}/${BUILDTYPE}"
     mkdir -p "$DIST_DIR_BUILDTYPE"
 
-    # Add Python executable to the PATH
-    export PATH=$PYTHONEXEPATH:$OLDPATH
-
     # Ensure that pip and its required modules are installed for Python 3 (release version)
     $PYTHON_EXE -m ensurepip
-    $PYTHON_EXE -m pip install pip
-    $PYTHON_EXE -m pip install setuptools
+    $PYTHON_EXE -m pip install --upgrade pip
+    $PYTHON_EXE -m pip install setuptools wheel
+
+    # Now install all required Python modules for building from pyside-setup's requirements.txt file.
+    $PYTHON_EXE -m pip install -r requirements.txt
 
     if [ "$BUILDTYPE" == "release" ]; then
         # Maya redefines `slots` so it is called `slots_` in the file. Rename it so it can be detected again
         sed -i -e 's/\(PyType_Slot\ \*slots\)_/\1/' $EXTERNAL_DEPENDENCIES_DIR/cpython/${PYTHONVERSION}/RelWithDebInfo/include/python${PYTHONVERSION_AdotB}${PYMALLOC_SUFFIX}/object.h
     fi
-
-    $PYTHON_EXE -m pip install wheel==0.34.1
-    $PYTHON_EXE -m pip install packaging
 
     # CMake is now installed the same way Qt CI does it, which places it in the path in the build user's bashrc
     # So it no longer needs to be explicitly added to the path.
@@ -143,14 +151,14 @@ do
     if [ $? -eq 0 ]; then
         echo "==== Success ==== $BUILDTYPE_STR Build"
     else
-        echo "**** Failed to build **** $BUILDTYPE_STR Build"
+        echo >&2 "**** Failed to build **** $BUILDTYPE_STR Build"
         exit 1
     fi
     $PYTHON_EXE setup.py bdist_wheel --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
     if [ $? -eq 0 ]; then
         echo "==== Success ==== $BUILDTYPE_STR Build Wheel"
     else
-        echo "**** Failed to build **** $BUILDTYPE_STR Build Wheel"
+        echo >&2 "**** Failed to build **** $BUILDTYPE_STR Build Wheel"
         exit 1
     fi
 
