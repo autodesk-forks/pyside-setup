@@ -1,18 +1,45 @@
-if [ ! -e README.pyside2.md ] ; then
-    echo "Pyside2 packaging script not in correct current directory"
-    echo "ABORTING: Current directory incorrect."
+#!/usr/bin/env bash
+
+set -e # Terminate with failure if any command returns nonzero
+set -u # Terminate with failure any time an undefined variable is expanded
+
+COMPRESS=0
+kept_args=()
+for arg in "$@"; do
+  case $arg in
+    -z|--compress)
+        if [[ $COMPRESS -eq 0 ]]; then
+            echo >&2 "Compressing like Jenkinsfile Packaging does."
+            COMPRESS=1
+        fi
+        shift
+        ;;
+    -*|--*)
+        echo >&2 "Unknown option $arg"
+        exit 1
+        ;;
+    *)
+        kept_args+=($arg)
+        ;;
+  esac
+done
+set -- "${kept_args[@]}"
+
+if [[ ! -f README.pyside2.md ]] ; then
+    echo >&2 "Please execute from the root of the pyside-setup repository."
     exit 1
 fi
 
 # Parameter 1 - Absolute path to workspace directory
-if [ $# -eq 0 ]; then
-    echo "Need to pass workspace directory to the script"
+if [[ $# -eq 0 ]]; then
+    echo >&2 "Need to pass workspace directory to the script"
     exit 1
 fi
 
+set +u
 # Environment Variable - QTVERSION - Version of Qt used to build PySide2
 if [[ -z "${QTVERSION}" ]]; then
-    echo "QTVERSION is undefined. Example: export QTVERSION=5.15.2"
+    echo >&2 "QTVERSION is undefined. Example: export QTVERSION=5.15.2"
     exit 1
 else
     echo "QTVERSION=${QTVERSION}"
@@ -20,7 +47,7 @@ fi
 
 # Environment Variable - PYSIDEVERSION - Version of PySide2 built
 if [[ -z "${PYSIDEVERSION}" ]]; then
-    echo "PYSIDEVERSION is undefined. Example: export PYSIDEVERSION=5.15.2"
+    echo >&2 "PYSIDEVERSION is undefined. Example: export PYSIDEVERSION=5.15.2"
     exit 1
 else
     echo "PYSIDEVERSION=${PYSIDEVERSION}"
@@ -28,14 +55,15 @@ fi
 
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide2 is built
 if [[ -z "$PYTHONVERSION" ]]; then
-    echo "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.7.7"
+    echo >&2 "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.7.7"
     exit 1
 else
     echo "PYTHONVERSION=${PYTHONVERSION}"
 fi
+set -u
 
 # Extract MAJOR(A), MINOR(B), and REVISION(C) from PYTHONVERSION
-PYTHONVERSION_ARRAY=($(echo $PYTHONVERSION | tr "." "\n"))  
+PYTHONVERSION_ARRAY=($(echo $PYTHONVERSION | tr "." "\n"))
 PYTHONVERSION_A=${PYTHONVERSION_ARRAY[0]}
 PYTHONVERSION_B=${PYTHONVERSION_ARRAY[1]}
 PYTHONVERSION_C=${PYTHONVERSION_ARRAY[2]}
@@ -45,10 +73,24 @@ PYTHONVERSION_AB=${PYTHONVERSION_A}${PYTHONVERSION_B}
 PYTHONVERSION_AdotB=${PYTHONVERSION_A}.${PYTHONVERSION_B}
 
 # Validate that the Python version given is within the accepted values
-if [[ ! ("$PYTHONVERSION_A" == "2" || "$PYTHONVERSION_A" == "3") ]]; then
-    echo "Python major version should be '2' or '3'. Example: export PYTHONVERSION=3.7.7"
+if [[ ! "$PYTHONVERSION" =~ (2\.7\.1[0-9]|3\.9\.5|3\.9\.7) ]]; then
+    # We expect the python version to be 2.7.10+, 3.9.5 or 3.9.7 right now. It
+    # will change in the future, and at that time this check should be updated
+    # to reflect the newly supported python versions.
+    echo >&2 "Expecting Python 2.7.1?, 3.9.5 or 3.9.7. aborting."
+    echo >&2 "Example: export PYTHONVERSION=3.9.7"
     exit 1
 fi
+
+# Check for patchelf
+export PATCHELF=patchelf
+set +e
+$PATCHELF --version
+if [[ $? -ne 0 ]]; then
+	echo >&2 "Couldn't find patchelf. aborting."
+	exit 1
+fi
+set -e
 
 # Python 2.7.X and 3.7.X artifacts have files with the pymalloc suffix
 export PYMALLOC_SUFFIX=
@@ -61,29 +103,41 @@ fi
 export WORKSPACE_DIR=$1
 
 # Location of the install directory within the workspace (where the builds will be located)
-export INSTALL_DIR=$WORKSPACE_DIR/install
+export INSTALL_DIR="${WORKSPACE_DIR}/install"
 
 # Location of the pyside2-uic and pyside2-rcc wrappers (determined by the --prefix option in the build script)
-export PREFIX_DIR=$WORKSPACE_DIR/build
+export PREFIX_DIR="${WORKSPACE_DIR}/build"
 
 # Location of the pyside2-uic and pyside2-rcc .dist-info metadata folders (determined by the --dist-dir option in the build script)
-export DIST_DIR=$WORKSPACE_DIR/dist
+export DIST_DIR="${WORKSPACE_DIR}/dist"
 
+# Validate that PREFIX_DIR and DIST_DIR exist.
 
-export PATCHELF=patchelf
-mkdir -p $INSTALL_DIR
+for dir in "$PREFIX_DIR" "$DIST_DIR"; do
+    if [[ ! -d "$dir" ]]; then
+        echo >&2 "$dir does not exist. aborting."
+        exit 1
+    fi
+done
+
+if [[ -e "$INSTALL_DIR" ]]; then
+    echo >&2 "It looks like packaging already happened."
+    echo >&2 "Please remove ${INSTALL_DIR} and try again. aborting."
+    exit 1
+fi
+
+mkdir "$INSTALL_DIR"
 
 # Determine if it is a Python 2 or Python 3 build
 export PATH_TO_MAYAPY_REGEX='1s/.*/\#\!\/usr\/bin\/env mayapy2/'
-if [ -e "pyside3_install" ]; then
+if [ $PYTHONVERSION_A -eq 3 ]; then
     export PATH_TO_MAYAPY_REGEX='1s/.*/\#\!\/usr\/bin\/env mayapy/'
 fi
-echo "Built for Python ${PYTHONVERSION_A}"
 
 
 # Write PySide2 build information to a "pyside2_version" file
 # instead of encoding the pyside version number in a directory name
-cat <<EOF >${INSTALL_DIR}/pyside2_version
+cat <<EOF >"${INSTALL_DIR}/pyside2_version"
 pyside2 $PYSIDEVERSION
 qt $QTVERSION
 python version $PYTHONVERSION
@@ -105,28 +159,28 @@ do
     fi
     export BUILDTYPE_INSTALL_DIR=pyside${PYTHONVERSION_A}${BUILDTYPE_SUFFIX}_install
 
-    if [ -e "$BUILDTYPE_INSTALL_DIR" ]; then
+    if [[ -e "$BUILDTYPE_INSTALL_DIR" ]]; then
         # Copy the build (release, debug) to the installation directory
-        cp -R "$BUILDTYPE_INSTALL_DIR" $INSTALL_DIR/
+        cp -R "$BUILDTYPE_INSTALL_DIR" "$INSTALL_DIR/"
 
         # Define the path to the directory of the PySide2 build (bin, include, lib, share) in the installation directory
-        export PYSIDE2_ROOT_DIR=${INSTALL_DIR}/${BUILDTYPE_INSTALL_DIR}/py${PYTHONVERSION_AdotB}-qt${QTVERSION}-64bit-${BUILDTYPE}
+        export PYSIDE2_ROOT_DIR="${INSTALL_DIR}/${BUILDTYPE_INSTALL_DIR}/py${PYTHONVERSION_AdotB}-qt${QTVERSION}-64bit-${BUILDTYPE}"
 
         # Workaround: Since the pyside2-uic and pyside2-rcc wrappers are not installed in the build directory, we need to copy them from
         # the --prefix directory into the artifact's /bin folder
         for wrapper in pyside2-rcc pyside2-uic
         do
-            cp $PREFIX_DIR/$BUILDTYPE/bin/$wrapper $PYSIDE2_ROOT_DIR/bin/
+            cp "$PREFIX_DIR/$BUILDTYPE/bin/$wrapper" "$PYSIDE2_ROOT_DIR/bin/"
 
             # Replace interpreter path for relative path to mayapy
-            sed -i -e "${PATH_TO_MAYAPY_REGEX}" $PYSIDE2_ROOT_DIR/bin/$wrapper
+            sed -i -e "${PATH_TO_MAYAPY_REGEX}" "$PYSIDE2_ROOT_DIR/bin/$wrapper"
         done
 
         # Copy the .dist-info metadata folders, since the pyside2-uic and pyside2-rcc wrappers rely on [console_scripts] entrypoints.
         for distfolder in PySide2 shiboken2 shiboken2_generator
         do
-            cp -R $DIST_DIR/$BUILDTYPE/$distfolder-$PYSIDEVERSION/$distfolder-$PYSIDEVERSION.dist-info $PYSIDE2_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/$distfolder-$PYSIDEVERSION.dist-info
-            mv $PYSIDE2_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/$distfolder-$PYSIDEVERSION.dist-info/RECORD $PYSIDE2_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/$distfolder-$PYSIDEVERSION.dist-info/RECORD-DONOTUNINSTALL
+            cp -R "$DIST_DIR/$BUILDTYPE/$distfolder-$PYSIDEVERSION/$distfolder-$PYSIDEVERSION.dist-info" "$PYSIDE2_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/$distfolder-$PYSIDEVERSION.dist-info"
+            mv "$PYSIDE2_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/$distfolder-$PYSIDEVERSION.dist-info/RECORD" "$PYSIDE2_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/$distfolder-$PYSIDEVERSION.dist-info/RECORD-DONOTUNINSTALL"
         done
 
         # Copy uic and rcc executable files into site-packages/PySide2, since it is the first search location for loadUiType.
@@ -149,14 +203,14 @@ do
         if [ $PYTHONVERSION_A -eq 3 ]; then
             echo "Changing RUNPATHs (Python 3 - ${BUILDTYPE})"
             export DEBUG_SUFFIX=
-            if [ "$BUILDTYPE" == "debug" ]; then
+            if [[ "$BUILDTYPE" == "debug" ]]; then
                 export DEBUG_SUFFIX=d
             fi
 
             for binfile in pyside2-lupdate uic rcc shiboken2
             do
                 export binfilepath="$PYSIDE2_ROOT_DIR/bin/$binfile"
-                if [ -e "$binfilepath" ]; then
+                if [[ -e "$binfilepath" ]]; then
                     $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$binfilepath"
                 fi
             done
@@ -207,4 +261,23 @@ do
         fi
     fi
 done
+
+if [[ $COMPRESS -ne 0 ]]; then
+    buildID=$(date +%Y%m%d%H%M)
+    gitCommitShort=$(git rev-parse HEAD | cut -c1-8)
+    cd "$INSTALL_DIR"
+    outdir=$(realpath "../out")
+    tarballPath="${outdir}/${buildID}-${gitCommitShort}-Maya-PySide2-Linux.tar.gz"
+    mkdir -p "$outdir"
+    echo -n "Creating tarball $tarballPath"
+    tar -czvf "$tarballPath" * | python -c "
+import sys
+for line in sys.stdin:
+    sys.stdout.write('.')
+    sys.stdout.flush()
+print()"
+    echo
+    echo "Tarball $tarballPath created."
+fi
+
 echo "==== Finished ===="
