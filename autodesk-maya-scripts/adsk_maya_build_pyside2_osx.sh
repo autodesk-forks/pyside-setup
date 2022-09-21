@@ -23,13 +23,25 @@ else
 	echo "PYSIDEVERSION=${PYSIDEVERSION}"
 fi
 
-# Environment Variable - PYTHONVERSION - Version of Python for which PySide2 is built
-if [[ -z "$PYTHONVERSION" ]]; then
-	echo "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.7.7"
+# Make sure the user has passed in a python executable to use
+if [[ -z "$PYTHONEXE" || ! -e "$PYTHONEXE" ]]; then
+    if [[ -z "$PYTHONEXE" ]]; then echo -n "PYTHONEXE is undefined. "; fi
+    if [[ ! -e "$PYTHONEXE" ]]; then echo -n "${PYTHONEXE} doesn't exist. "; fi
+    if [[ ! -x "$PYTHONEXE" ]]; then echo -n "${PYTHONEXE} isn't executable. "; fi
+	echo "Example: export PYTHONEXE=/external_dependencies/cpython/3.9.5/RelWithdebInfo/bin/python"
 	exit 1
 else
-	echo "PYTHONVERSION=${PYTHONVERSION}"
+	echo "PYTHONEXE=${PYTHONEXE}"
 fi
+
+# Environment Variable - PYTHONVERSION - Version of Python for which PySide2 is built
+# Determine the python version from python itself.
+PYTHON_EXE_VERSION=$($PYTHONEXE -c "import sys; v=sys.version_info; print('{}.{}.{}'.format(v.major, v.minor, v.micro))")
+if [[ ! "$PYTHON_EXE_VERSION" == "$PYTHONVERSION" ]]; then
+    echo >&2 "Expecting Python ${PYTHONVERSION}, but the python executable ${PYTHONEXE} is ${PYTHON_EXE_VERSION}. aborting."
+    exit 1
+fi
+echo "PYTHONVERSION=${PYTHONVERSION}"
 
 # Extract MAJOR(A), MINOR(B), and REVISION(C) from PYTHONVERSION
 PYTHONVERSION_ARRAY=($(echo $PYTHONVERSION | tr "." "\n"))
@@ -68,12 +80,6 @@ export QTPATH=$EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION
 # Location of liblang directory (in external dependencies)
 export CLANG_INSTALL_DIR=$EXTERNAL_DEPENDENCIES_DIR/libclang
 
-# Name of the Python executable
-export PYTHON_EXE=python
-if [ $PYTHONVERSION_A -eq 3 ]; then
-	export PYTHON_EXE=python${PYTHONVERSION_AdotB}
-fi
-
 
 # Create qt.conf file
 touch $EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION/bin/qt.conf
@@ -84,11 +90,11 @@ echo Prefix=.. >> $EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION/bin/qt.conf
 export NUMBER_OF_PROCESSORS=`sysctl -n hw.ncpu`
 
 # Ensure that pip and its required modules are installed
-$PYTHON_EXE -m ensurepip
-$PYTHON_EXE -m pip install pip
-$PYTHON_EXE -m pip install setuptools
-$PYTHON_EXE -m pip install wheel==0.34.1
-$PYTHON_EXE -m pip install packaging
+$PYTHONEXE -m ensurepip
+$PYTHONEXE -m pip install pip
+$PYTHONEXE -m pip install setuptools
+$PYTHONEXE -m pip install wheel==0.34.1
+$PYTHONEXE -m pip install packaging
 
 # Note: Mac uses the python.org distribution of Python 3, so there is no need to modify `slots`.
 
@@ -127,7 +133,7 @@ do
 	export DIST_DIR_BUILDTYPE="${DIST_DIR}/${BUILDTYPE}"
 	mkdir -p "$DIST_DIR_BUILDTYPE"
 
-	$PYTHON_EXE setup.py install --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS --macos-deployment-target=11.0 --macos-arch="x86_64;arm64"  --skip-modules=Help
+	$PYTHONEXE setup.py install --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS --macos-deployment-target=11.0 --macos-arch="x86_64;arm64"  --skip-modules=Help
 	if [ $? -eq 0 ]; then
 		echo "==== Success ==== $BUILDTYPE_STR Build"
 	else
@@ -135,7 +141,7 @@ do
 		exit 1
 	fi
 
-	$PYTHON_EXE setup.py bdist_wheel --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS --skip-modules=Help --macos-deployment-target=11.0 --macos-arch="x86_64;arm64"
+	$PYTHONEXE setup.py bdist_wheel --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS --skip-modules=Help --macos-deployment-target=11.0 --macos-arch="x86_64;arm64"
 
 	if [ $? -eq 0 ]; then
 		echo "==== Success ==== $BUILDTYPE_STR Build Wheel"
@@ -153,8 +159,8 @@ do
 	export SHIBOKEN2_WHEEL=shiboken2-${WHEEL_SUFFIX}.whl
 	export SHIBOKEN2_GEN_WHEEL=shiboken2_generator-${WHEEL_SUFFIX}.whl
 
-	$PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${PYSIDE2_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
-	$PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN2_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
-	$PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN2_GEN_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+	$PYTHONEXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${PYSIDE2_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+	$PYTHONEXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN2_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+	$PYTHONEXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN2_GEN_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
 done
 echo "==== Finished ===="

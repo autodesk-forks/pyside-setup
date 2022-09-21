@@ -134,7 +134,11 @@ do
         done
         
         # Remove incorrect RPATHs of installed site-packages/PySide2/uic
+        # We expect there will be some RPATH removal errors reported. These started happening with the Universal2 build, thus we turn off exit on nonzero returncode
+        set +e
+        echo "install_name_tool -delete_rpath \"$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib\" -delete_rpath '@loader_path' \"${PYSIDE2_ROOT_DIR}/lib/python$PYTHONVERSION_AdotB/site-packages/PySide2/uic\""
         install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib" -delete_rpath '@loader_path' "${PYSIDE2_ROOT_DIR}/lib/python$PYTHONVERSION_AdotB/site-packages/PySide2/uic"
+        set -e
 
         # Copy the 'scripts' PySide2 sudmodules folder manually, since the pyside2-uic and pyside2-rcc wrappers invoke
         # pyside_tool.py through [console_scripts] entrypoints.
@@ -151,11 +155,12 @@ do
         find "$PYSIDE2_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/PySide2/" -type d -name "__pycache__" -exec rm -r {} +
 
         # Change RPATHs of shiboken2 executable
+        # We expect there will be some RPATH removal errors reported. These started happening with the Universal2 build, thus we turn off bail on nonzero exit code
+        set +e
         echo "install_name_tool -delete_rpath \"$WORKSPACE_DIR/external_dependencies/libclang/lib\" \"$PYSIDE2_ROOT_DIR/bin/shiboken2\""
         install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/libclang/lib" "$PYSIDE2_ROOT_DIR/bin/shiboken2"
         echo "install_name_tool -delete_rpath \"$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib\" \"$PYSIDE2_ROOT_DIR/bin/shiboken2\""
         install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib" "$PYSIDE2_ROOT_DIR/bin/shiboken2"
-        set +e # don't bail if commands return nonzero exit codes, since we're explicitly checking this one.
         echo "install_name_tool -add_rpath @loader_path/../MacOS \"$PYSIDE2_ROOT_DIR/bin/shiboken2\""
         install_name_tool -add_rpath @loader_path/../MacOS "$PYSIDE2_ROOT_DIR/bin/shiboken2"
         if [[ $? -ne 0 ]]; then
