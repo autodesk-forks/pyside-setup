@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Bash script safety
+set -e # Terminate with error if any external command returns nonzero exit status (use || true to accept nonzero exit statuses)
+set -u # Terminate with error if any undefined variable is dereferenced.
+
 if [[ ! -f README.pyside6.md ]]; then
     echo >&2 "Please execute from the root of the pyside-setup repository."
     exit 1
@@ -27,7 +31,21 @@ else
     echo "PYSIDEVERSION=${PYSIDEVERSION}"
 fi
 
+
+# Location of the workspace directory (root)
+export WORKSPACE_DIR=$1
+# Location of external dependencies directory
+export EXTERNAL_DEPENDENCIES_DIR=$WORKSPACE_DIR/external_dependencies
+
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
+if [[ -z "$PYTHONVERSION" && -d $EXTERNAL_DEPENDENCIES_DIR/cpython ]]; then
+    GUESSED_PYVER=$(ls -1 $EXTERNAL_DEPENDENCIES_DIR/cpython)
+    read -p "Is python version $GUESSED_PYVER (y/N)? " -n 1 query
+    if [[ "$query" == "Y" || "$query" == "y" ]]; then
+        PYTHONVERSION=$GUESSED_PYVER
+    fi
+fi
+
 if [[ -z "$PYTHONVERSION" ]]; then
     echo >&2 "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.9.7"
     exit 1
@@ -54,12 +72,6 @@ fi
 
 # Python 3.9.7 artifacts don't have any pymalloc suffix, but future python builds might. Leaving this in place.
 export PYMALLOC_SUFFIX=
-
-# Location of the workspace directory (root)
-export WORKSPACE_DIR=$1
-
-# Location of external dependencies directory
-export EXTERNAL_DEPENDENCIES_DIR=$WORKSPACE_DIR/external_dependencies
 
 # Location of Qt build directory (in external dependencies)
 export QTPATH=$EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION
