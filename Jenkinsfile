@@ -62,7 +62,6 @@ buildStages = [
 
 buildConfigs = [
     "pyside_local": "local",
-    "pyside_Lnx": "CentOS 7.6",
     "pyside_Rhel8": "Rhel 8.6",
     "pyside_Mac": "Mojave 10.14",
     "pyside_Win": "Windows 10"
@@ -497,7 +496,6 @@ EOF"""
         println "sorted dateFolders: ${dateFolders}"
 
         def qtArtifactWin = ""
-        def qtArtifactLnx = ""
         def qtArtifactMac = ""
         def qtArtifactRhel8 = ""
         for (dateFolder in dateFolders) {
@@ -519,8 +517,6 @@ EOF"""
                 artifactList.each {
                     if (it.uri.contains('Maya-Qt-Windows')) {
                         qtArtifactWin = info.repo + info.path + it.uri
-                    } else if (it.uri.contains('Maya-Qt-Linux')) {
-                        qtArtifactLnx = info.repo + info.path + it.uri
                     } else if (it.uri.contains('Maya-Qt-Rhel8')) {
                         qtArtifactRhel8 = info.repo + info.path + it.uri
                     } else if (it.uri.contains('Maya-Qt-Mac')) {
@@ -531,7 +527,7 @@ EOF"""
             }
         }
 
-        return [qtArtifactWin, qtArtifactLnx, qtArtifactRhel8, qtArtifactMac]
+        return [qtArtifactWin, qtArtifactRhel8, qtArtifactMac]
 }
 
 //-----------------------------------------------------------------------------
@@ -597,10 +593,10 @@ def Initialize(String buildConfig) {
         // Define where to publish PySide6 on Artifactory
         artifactoryTarget = "oss-stg-generic/pyside6/${branch}/Maya/Qt${qtVersion}/Python${pythonVersionAdotB}/${buildTime}/"
 
-        (QtArtifact_Win, QtArtifact_Lnx, QtArtifact_Rhel8, QtArtifact_Mac) = getQtArtifacts(params.QtBuildID, "${artifactoryRoot}api/storage/oss-stg-generic/Qt/${qtVersion}/Maya")
-        println("Win: ${QtArtifact_Win}, Linux: ${QtArtifact_Lnx}, Rhel8: ${QtArtifact_Rhel8}, Mac: ${QtArtifact_Mac}")
+        (QtArtifact_Win, QtArtifact_Rhel8, QtArtifact_Mac) = getQtArtifacts(params.QtBuildID, "${artifactoryRoot}api/storage/oss-stg-generic/Qt/${qtVersion}/Maya")
+        println("Win: ${QtArtifact_Win}, Rhel8: ${QtArtifact_Rhel8}, Mac: ${QtArtifact_Mac}")
 
-        if (QtArtifact_Win == "" || QtArtifact_Lnx == "" || QtArtifact_Rhel8 == "" || QtArtifact_Mac == "") {
+        if (QtArtifact_Win == "" || QtArtifact_Rhel8 == "" || QtArtifact_Mac == "") {
             error("**** Error:  Unable to find specified Qt artifact ***** ")
         }
 
@@ -646,15 +642,6 @@ def Setup(String buildConfig) {
                 artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-mac-universal2-expandedframework-MANUAL-2022_09_22_1000.tar.gz"
             } else if (params.PythonVersion == '3.9.7') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-mac-002-universal2-expandedframework.tar.gz"
-            }
-        }
-        else if (checkOS() == "Linux") {
-            PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Linux.tar.gz"
-            artifacts[buildConfig]  = ["${QtArtifact_Lnx}", "team-maya-generic/libclang/release_120-based/libclang-release_120-based-linux-Rhel7.6-gcc5.3-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz"]
-            if (params.PythonVersion == '3.10.6') {
-                artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-9.3.1-openssl-1.1.1k_MANUAL.zip"
-            } else if (params.PythonVersion == '3.9.7') {
-                artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-2.tar.gz"
             }
         }
         else if (checkOS() == "RedHat") {
@@ -816,13 +803,6 @@ def Publish(String workDir, String buildConfig) {
                     props = String.format("%s;%s", props, artifactProps)
                 }
             }
-            else if (checkOS() == "Linux") {
-                pattern = "out/*.tar.gz"
-                props = "QtArtifact=${QtArtifact_Lnx};commit=${gitCommit};OS=Rhel7.6;Compiler=gcc9.3.1;libclang=release_70-based"
-                if (artifactProps != "") {
-                    props = String.format("%s;%s", props, artifactProps)
-                }
-            }
             else if (checkOS() == "RedHat") {
                 pattern = "out/*.tar.gz"
                 props = "QtArtifact=${QtArtifact_Rhel8};commit=${gitCommit};OS=Rhel8.6;Compiler=gcc11.2.1;libclang=release_70-based"
@@ -892,9 +872,8 @@ def Finalize(String buildConfig) {
 //-----------------------------------------------------------------------------
 
 // Define which node to use for each platform
-def generateSteps = {pyside_lnx, pyside_rhel8, pyside_mac, pyside_win ->
+def generateSteps = {pyside_rhel8, pyside_mac, pyside_win ->
     return [
-        "pyside_Lnx" : { node("OSS-Maya-CentOS76_02") { pyside_lnx() }},
         "pyside_Rhel8" : { node("qt-2024-linux-rhel8-nogpu-pool") { pyside_rhel8() }},
         "pyside_Mac" : { node("OSS-Maya-OSX12.4.0-Xcode13.3") { pyside_mac() }},
         "pyside_Win" : { node("OSS-Maya_2022_Win10-vs2019_02") { pyside_win() }}
@@ -928,9 +907,6 @@ try {
     {
         parallel generateSteps(
             {
-                Setup('pyside_Lnx')
-            },
-            {
                 Setup('pyside_Rhel8')
             },
             {
@@ -945,9 +921,6 @@ try {
     stage (buildStages['Sync'].name)
     {
         parallel generateSteps(
-            {
-                Sync(workspaceRoot['pyside_Lnx'], 'pyside_Lnx')
-            },
             {
                 Sync(workspaceRoot['pyside_Rhel8'], 'pyside_Rhel8')
             },
@@ -964,9 +937,6 @@ try {
     {
         parallel generateSteps(
             {
-                Build(workspaceRoot['pyside_Lnx'], 'pyside_Lnx')
-            },
-            {
                 Build(workspaceRoot['pyside_Rhel8'], 'pyside_Rhel8')
             },
             {
@@ -982,9 +952,6 @@ try {
     {
         parallel generateSteps(
             {
-                Package(workspaceRoot['pyside_Lnx'], 'pyside_Lnx')
-            },
-            {
                 Package(workspaceRoot['pyside_Rhel8'], 'pyside_Rhel8')
             },
             {
@@ -999,9 +966,6 @@ try {
     stage (buildStages['Publish'].name)
     {
         parallel generateSteps(
-            {
-                Publish(workspaceRoot['pyside_Lnx'], 'pyside_Lnx')
-            },
             {
                 Publish(workspaceRoot['pyside_Rhel8'], 'pyside_Rhel8')
             },
