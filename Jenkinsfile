@@ -650,7 +650,7 @@ def Setup(String buildConfig) {
         }
         else if (checkOS() == "Linux") {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Linux.tar.gz"
-            artifacts[buildConfig]  = ["${QtArtifact_Lnx}", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz"]
+            artifacts[buildConfig]  = ["${QtArtifact_Lnx}", "team-maya-generic/libclang/release_120-based/libclang-release_120-based-linux-Rhel7.6-gcc5.3-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz"]
             if (params.PythonVersion == '3.10.6') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-9.3.1-openssl-1.1.1k_MANUAL.zip"
             } else if (params.PythonVersion == '3.9.7') {
@@ -659,7 +659,7 @@ def Setup(String buildConfig) {
         }
         else if (checkOS() == "RedHat") {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Rhel8.tar.gz"
-            artifacts[buildConfig]  = ["${QtArtifact_Rhel8}", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.13.3-Linux-x86_64.tar.gz"]
+            artifacts[buildConfig]  = ["${QtArtifact_Rhel8}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-linux-Rhel8.2-gcc9.2-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz"]
             if (params.PythonVersion == '3.10.6') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-9.3.1-openssl-1.1.1k_MANUAL.zip"
             } else if (params.PythonVersion == '3.9.7') {
@@ -668,7 +668,7 @@ def Setup(String buildConfig) {
         }
         else {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Windows.zip"
-            artifacts[buildConfig]  = ["${QtArtifact_Win}", "team-maya-generic/libclang/release_100-based/libclang-release_100-based-windows-vs2019_64.zip", "team-maya-generic/openssl/1.1.1g/openssl-1.1.1g-win-vc140.zip", "team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip", "team-shotgun-view-master-generic/jom/jom_1_1_3.zip"]
+            artifacts[buildConfig]  = ["${QtArtifact_Win}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-windows-vs2019_64.zip", "team-maya-generic/openssl/1.1.1g/openssl-1.1.1g-win-vc140.zip", "team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip", "team-shotgun-view-master-generic/jom/jom_1_1_3.zip"]
             if (params.PythonVersion == '3.10.6') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-win-MANUAL-2022_08_31_1430.zip"
             } else if (params.PythonVersion == '3.9.7') {
