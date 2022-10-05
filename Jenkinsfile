@@ -876,7 +876,7 @@ def generateSteps = {pyside_rhel8, pyside_mac, pyside_win ->
     return [
         "pyside_Rhel8" : { node("qt-2024-linux-rhel8-nogpu-pool") { pyside_rhel8() }},
         "pyside_Mac" : { node("OSS-Maya-OSX12.4.0-Xcode13.3") { pyside_mac() }},
-        "pyside_Win" : { node("OSS-Maya_2022_Win10-vs2019_02") { pyside_win() }}
+        "pyside_Win" : { node("OSS-Maya_2024_Win10-vs2022_qt6_build") { pyside_win() }}
         ]
 }
 
