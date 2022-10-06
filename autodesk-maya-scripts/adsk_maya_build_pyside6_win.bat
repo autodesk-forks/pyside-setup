@@ -63,7 +63,7 @@ if "!pymajorver_acceptable_values:%PYTHONVERSION_A%=!" == "!pymajorver_acceptabl
 
 if not defined VSCMD_VER (
     REM Activate Visual Studio compiler for amd64 architecture (at default install location)
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat" amd64
+    call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat" amd64
 ) else (
     echo vcvarsall.bat already called
 )
