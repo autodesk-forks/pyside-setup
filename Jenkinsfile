@@ -35,8 +35,7 @@ buildTime = String.format('%tY-%<tm-%<td-%<tH-%<tM', now)
 buildID = buildTime.replace("-", "")
 product = "pyside"
 gitBranch = env.BRANCH_NAME  // Actual branch name in GIT repo
-branch = getPySideVersion(gitBranch) // Pyside branch version
-pysideVersion = "${branch}" // Sub-folder name in zip/tar files
+pysideVersion = "" // This is initialized in Initialize.
 
 // PythonVersion: Extract MAJOR(A), MINOR(B), and REVISION(C)
 pythonVersionArray = params.PythonVersion.tokenize(".")
@@ -68,21 +67,18 @@ buildConfigs = [
 ]
 
 //-----------------------------------------------------------------------------
-def getPySideVersion(gitBranch) {
-    println "gitBranch: ${gitBranch}\n"
+def getPysideVersion(srcDir) {
+    def scriptDir = "${srcDir}/autodesk-maya-scripts"
+    def ver = sh (
+        script: "python ${scriptDir}/fetch-qt-version.py ${srcDir}",
+        returnStdout: true
+    ).trim()
 
-    // Capture Group (?:\d+\.*){1,} => Extract the version X.Y.Z
-    // Allows strings at the end
-    // ex: adsk-contrib-maya-v6.2.3-testrun
-    def found = (gitBranch =~ /.*adsk-maya-pyside-((?:\d+\.*){1,}).*$/)
-
-    if (found.matches()) {
-        def version = found[0]
-        println "version: ${version[1]}\n"
-        return version[1]
-    } else {
-        return "Preflight"
-    }
+    // If for some reason, a version number couldn't be found, we will go back
+    // to the prior logic of using "Preflight" for the version.
+    ver = ver ? ver : "Preflight"
+    println "pysideVersion: ${ver}\n"
+    return ver
 }
 
 //-----------------------------------------------------------------------------
@@ -129,6 +125,7 @@ def getHostName() {
 def notifyBuild(buildStatus, String gitBranch) {
     // build status of null means successful
     buildStatus =  buildStatus ?: 'SUCCESSFUL'
+    assert pysideVersion != ""
 
     // Default values
     def subject = "[${product}_${pysideVersion}] - ${buildStatus}: Job - '${gitBranch} [${env.BUILD_NUMBER}]'"
@@ -448,7 +445,6 @@ def getWorkspace(String buildConfig) {
         workDir = root.take(count) + product
     }
     else {
-        //workDir = root.take(count) + product + '_' + pysideVersion  //Should add buildType and config too i.e. CI/DI/PF Debug/Release
         workDir = root.take(count) + product + '_maya' //Use same workspace for all release branches
     }
     println "workDir: ${workDir}"
@@ -547,8 +543,12 @@ def Initialize(String buildConfig) {
             runOSCommand("git checkout ${env.BRANCH_NAME}")
             runOSCommand("git pull")
 
+            pysideVersion = getPysideVersion(srcDir)
+            println "pysideVersion: ${pysideVersion}"
+            assert pysideVersion != ""
+
             gitCommitShort = gitCommit.substring(0,8)
-            if (branch == 'Preflight') {
+            if (pysideVersion == 'Preflight') {
                 gitCommitUser = sh (
                     script: "git show -s --format='%an' ${gitCommit} | awk '{print \$1\$2}' ",
                     returnStdout: true
@@ -561,7 +561,7 @@ def Initialize(String buildConfig) {
             } else {
                 //Get lastBuildCommit & lastSuccessfulCommit
                 buildInfo = sh (
-                    script: "python $jenkinsScriptDir/updatebuildcommit.py -g -p ${product} -b ${branch} -t ${buildType} -c ${config}",
+                    script: "python $jenkinsScriptDir/updatebuildcommit.py -g -p ${product} -b ${pysideVersion} -t ${buildType} -c ${config}",
                     returnStdout: true
                 ).trim()
                 (lastSuccessfulCommit, lastBuildCommit) = buildInfo.tokenize( ' ' )
@@ -591,7 +591,7 @@ def Initialize(String buildConfig) {
         }
 
         // Define where to publish PySide6 on Artifactory
-        artifactoryTarget = "oss-stg-generic/pyside6/${branch}/Maya/Qt${qtVersion}/Python${pythonVersionAdotB}/${buildTime}/"
+        artifactoryTarget = "oss-stg-generic/pyside6/${pysideVersion}/Maya/Qt${qtVersion}/Python${pythonVersionAdotB}/${buildTime}/"
 
         (QtArtifact_Win, QtArtifact_Rhel8, QtArtifact_Mac) = getQtArtifacts(params.QtBuildID, "${artifactoryRoot}api/storage/oss-stg-generic/Qt/${qtVersion}/Maya")
         println("Win: ${QtArtifact_Win}, Rhel8: ${QtArtifact_Rhel8}, Mac: ${QtArtifact_Mac}")
@@ -720,6 +720,7 @@ def Build(String workDir, String buildConfig) {
     }
 
     try {
+        assert pysideVersion != ""
         dir (srcDir) {
             def cpythonDir = "${workDir}/${downloadDir}/cpython"
             if (checkOS() == "Mac") {
@@ -755,6 +756,7 @@ def Package(String workDir, String buildConfig) {
     def stage = "Package"
 
     try {
+        assert pysideVersion != ""
         def srcDir = "${workDir}/src"
         def scriptDir = "${workDir}/src/autodesk-maya-scripts"
         dir (srcDir) {
@@ -847,7 +849,8 @@ def Publish(String workDir, String buildConfig) {
 def Finalize(String buildConfig) {
     def stage = "Finalize"
     try {
-        if (branch != 'Preflight') {
+        assert pysideVersion != ""
+        if (pysideVersion != 'Preflight') {
             def workDir = getWorkspace(buildConfig)
             def srcDir = "${workDir}/src"
             def jenkinsScriptDir = "${workDir}/src/autodesk-maya-jenkins-helpers-internal"
@@ -984,6 +987,7 @@ try {
             Finalize('pyside_local')
         }
     }
+    assert pysideVersion != ""
 } catch (e) {
     errorHandler(e)
 } finally {
