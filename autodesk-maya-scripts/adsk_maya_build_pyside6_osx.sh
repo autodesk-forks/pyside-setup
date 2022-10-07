@@ -7,6 +7,7 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
+set +u
 # Environment Variable - QTVERSION - Version of Qt used to build PySide6
 if [[ -z "${QTVERSION}" ]]; then
     echo "QTVERSION is undefined. Example: export QTVERSION=6.2.3"
@@ -22,10 +23,30 @@ if [[ -z "${PYSIDEVERSION}" ]]; then
 else
     echo "PYSIDEVERSION=${PYSIDEVERSION}"
 fi
+set -u
+
+# Make sure the user has passed in a python executable to use
+pythonexe=$PYTHONEXE
+pythonexe_varname="PYTHONEXE"
+pythonconfig="RelWithDebInfo"
+if [[ -z "$pythonexe" || ! -e "$pythonexe" ]]; then
+    if [[ -z "$pythonexe" ]]; then echo -n "${pythonexe_varname} is undefined. "; fi
+    if [[ ! -e "$pythonexe" ]]; then echo -n "${pythonexe} doesn't exist. "; fi
+    if [[ ! -x "$pythonexe" ]]; then echo -n "${pythonexe} isn't executable. "; fi
+    echo "Example: export ${pythonexe_varname}=$1/external_dependencies/cpython/3.9.5/${pythonconfig}/bin/python3.9"
+    exit 1
+else
+    echo "${pythonexe_varname}=${pythonexe}"
+fi
+
+pythonexe_version=$($pythonexe -c "import sys; v=sys.version_info; print('{}.{}.{}'.format(v.major, v.minor, v.micro))")
+if [[ ! "$pythonexe_version" == "$PYTHONVERSION" ]]; then
+    echo >&2 "Expecting Python ${PYTHONVERSION}, but the python executable ${pythonexe} is ${pythonexe_version}. aborting."
+    exit 1
+fi
 
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
-# On macOS now, the python that is on the path is now used - so determine version from that.
-export PYTHONVERSION=$(python --version | awk '{print $2}')
+echo "PYTHONVERSION=${PYTHONVERSION}"
 
 # Extract MAJOR(A), MINOR(B), and REVISION(C) from PYTHONVERSION
 PYTHONVERSION_ARRAY=($(echo $PYTHONVERSION | tr "." "\n"))
@@ -38,19 +59,24 @@ PYTHONVERSION_AB=${PYTHONVERSION_A}${PYTHONVERSION_B}
 PYTHONVERSION_AdotB=${PYTHONVERSION_A}.${PYTHONVERSION_B}
 
 # Validate that the Python version given is within the accepted values
-if [[ ! ("$PYTHONVERSION_A" == "3") ]]; then
-    echo "Python major version should be '3'. Example: export PYTHONVERSION=3.9.7"
+if [[ ! "$PYTHONVERSION" =~ (3\.9\.7|3\.10\.[0-9]*) ]]; then
+    # We expect the python version to be 3.9.7, or 3.10.x
+    # right now. It will change in the future, and at that time this
+    # check should be updated to reflect the newly supported python
+    # versions.
+    echo >&2 "Expecting Python 3.9.7, or 3.10.x. aborting."
+    echo >&2 "Example: export PYTHONVERSION=3.9.7"
     exit 1
 fi
 
-# Python 3.9.7 artifacts don't have any pymalloc suffix, but future python builds might. Leaving this in place.
+# Python 2.7.X and 3.7.X artifacts had files with the pymalloc suffix
+# Since we do not support those with PySide6, no suffix is used.
+# This variable is still present just in case a future python release
+# used has a pymalloc suffix.
 export PYMALLOC_SUFFIX=
 
 # Location of the workspace directory (root)
 export WORKSPACE_DIR=$1
-
-# Exit bash script if expanding vars that were never set.
-set -e
 
 # Location of external dependencies directory
 export EXTERNAL_DEPENDENCIES_DIR=$WORKSPACE_DIR/external_dependencies
@@ -62,7 +88,7 @@ export QTPATH=$EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION
 export CLANG_INSTALL_DIR=$EXTERNAL_DEPENDENCIES_DIR/libclang
 
 # Name of the Python executable
-export PYTHON_EXE=python${PYTHONVERSION_AdotB}
+export PYTHON_EXE=$PYTHONEXE
 
 
 # Create qt.conf file
