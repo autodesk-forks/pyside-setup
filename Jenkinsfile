@@ -505,8 +505,11 @@ EOF"""
             info = readJSON text: response
             def artifactList = info.children
 
-            // There must be exactly 5 entries in the folder (2 Windows, 1 Linux, 1 Rhel8 and 1 Mac)
-            if (artifactList.size() != 5)
+            // There must be somewhere between 3 and 5 entries in the folder
+            // mac, linux, windows as a minimum. Some builds have a second windows
+            // artifact splitting out the examples, and some also have two linux
+            // builds - RHEL8 and CentOS 7.
+            if (artifactList.size() < 3 || artifactList.size() > 5)
                 continue // Try the next one
 
             if (buildID == 'latest' || dateFolder.contains(buildID)) {
