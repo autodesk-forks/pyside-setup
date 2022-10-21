@@ -543,9 +543,10 @@ def Initialize(String buildConfig) {
             scmInfo = checkout scm
             gitCommit = params.COMMIT == "" ? scmInfo.GIT_COMMIT : params.COMMIT
             println "${scm.branches} Branch: ${env.BRANCH_NAME}"
-
+            runOSCommand("git checkout HEAD~")
+            runOSCommand("git branch -D ${env.BRANCH_NAME}")
+            runOSCommand("git fetch")
             runOSCommand("git checkout ${env.BRANCH_NAME}")
-            runOSCommand("git pull")
 
             pysideVersion = getPysideVersion(srcDir)
             println "pysideVersion: ${pysideVersion}"
