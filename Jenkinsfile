@@ -62,7 +62,7 @@ buildStages = [
 buildConfigs = [
     "pyside_local": "local",
     "pyside_Rhel8": "Rhel 8.6",
-    "pyside_Mac": "Mojave 10.14",
+    "pyside_Mac": "Monterey 12.4.0",
     "pyside_Win": "Windows 10"
 ]
 
@@ -808,21 +808,21 @@ def Publish(String workDir, String buildConfig) {
 
             if (checkOS() == "Mac") {
                 pattern = "out/*.tar.gz"
-                props = "QtArtifact=${QtArtifact_Mac};commit=${gitCommit};OS=OSX10.14.1;Compiler=xcode10.1;libclang=release_70-based"
+                props = "QtArtifact=${QtArtifact_Mac};commit=${gitCommit};OS=OSX12.4.0;Compiler=xcode13.4.1;libclang=release_140-based"
                 if (artifactProps != "") {
                     props = String.format("%s;%s", props, artifactProps)
                 }
             }
             else if (checkOS() == "RedHat") {
                 pattern = "out/*.tar.gz"
-                props = "QtArtifact=${QtArtifact_Rhel8};commit=${gitCommit};OS=Rhel8.6;Compiler=gcc11.2.1;libclang=release_70-based"
+                props = "QtArtifact=${QtArtifact_Rhel8};commit=${gitCommit};OS=Rhel8.6;Compiler=gcc11.2.1;libclang=release_140-based"
                 if (artifactProps != "") {
                     props = String.format("%s;%s", props, artifactProps)
                 }
             }
             else {
                 pattern = "out/*.zip"
-                props = "QtArtifact=${QtArtifact_Win};commit=${gitCommit};OS=Windows10;Compiler=v142;libclang=release_100-based"
+                props = "QtArtifact=${QtArtifact_Win};commit=${gitCommit};OS=Windows10;Compiler=MSVC-14.33.31629;libclang=release_140-based"
                 if (artifactProps != "") {
                     props = String.format("%s;%s", props, artifactProps)
                 }
