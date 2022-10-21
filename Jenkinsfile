@@ -285,14 +285,14 @@ def GetArtifacts(String workDir, String buildConfig) {
             print "${downloadFile} --- ${downloadDir}"
 
             if (isUnix()) {
-                runOSCommand("mkdir -p ${downloadDir}")
-                def extension = downloadFile.substring(downloadFile.lastIndexOf('.'))
-                print "Extension: ${extension}"
-                //Use unzip for zip file.  tar failed to extract zip file on Linux
-                if(extension in ['.zip']) {
+                // tar.gz is the default, but some artifacts may be .tar.xz, and some may be .zip
+                z = "z"
+                if (downloadFile.endsWith(".tar.gz") || downloadFile.endsWith(".tar.xz")) {
+                    // 'J' option to tar expands .xz files
+                    z = downloadFile.endsWith(".tar.xz") ? "J" : "z"
+                    runOSCommand("tar ${z}xvf ${downloadFile} -C ${downloadDir}")
+                } else if (downloadFile.endsWith(".zip")) {
                     runOSCommand("unzip ${downloadFile} -d ${downloadDir}")
-                } else {
-                    runOSCommand("tar zxvf ${downloadFile} -C ${downloadDir}")
                 }
             }
             else {
