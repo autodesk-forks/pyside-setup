@@ -628,9 +628,6 @@ def Setup(String buildConfig) {
             dir ('install') {
                 deleteDir()
             }
-            dir ('out') {
-                deleteDir()
-            }
             dir ('external_dependencies') {
                 deleteDir()
             }
@@ -775,6 +772,11 @@ def Package(String workDir, String buildConfig) {
         }
 
         dir(workDir) {
+            // Clean up prior build archives just before creating the new ones.
+            dir ('out') {
+                deleteDir()
+            }
+
             dir('install') {
                 if (isUnix()){
                     runOSCommand("""mkdir ../out""")  //Create 'out' folder where zip files will be created.
