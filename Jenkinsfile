@@ -445,7 +445,8 @@ def getWorkspace(String buildConfig) {
         workDir = root.take(count) + product
     }
     else {
-        workDir = root.take(count) + product + '_maya' //Use same workspace for all release branches
+        //Use same workspace for all release branches
+        workDir = root.take(count) + product + '_maya'
     }
     println "workDir: ${workDir}"
     return workDir
@@ -576,8 +577,9 @@ def Initialize(String buildConfig) {
                 if (lastBuildCommit == null) {
                     lastBuildCommit = gitCommit
                 }
-                    artifactName = String.format("%s-%s", buildID, gitCommitShort)
+                artifactName = String.format("%s-%s", buildID, gitCommitShort)
             }
+
             commitInfo = sh (
                 script: "python $jenkinsScriptDir/getcommitinfo.py -s ${srcDir} -sc ${lastSuccessfulCommit} -bc ${lastBuildCommit} -gc ${gitCommit}",
                 returnStdout: true
@@ -605,6 +607,7 @@ def Initialize(String buildConfig) {
 
         workspaceRoot[buildConfig] = workDir
         hostName[buildConfig] = getHostName()
+
         results[buildConfig][stage] = "Success"
     } catch (e) {
         errorHandler(e, buildConfig, stage)
@@ -686,8 +689,11 @@ def Sync(String workDir, String buildConfig) {
                 runOSCommand("git submodule update --init")
             }
             print "Commit: $gitCommit"
-            // Checkout scm to the commit_id
-            checkout([$class: 'GitSCM', branches: [[name: gitCommit ]], userRemoteConfigs: scm.userRemoteConfigs])
+            //checkout scm to the commit_id
+
+            checkout([$class: 'GitSCM', branches: [[name: gitCommit ]],
+                userRemoteConfigs: scm.userRemoteConfigs])
+
             // Remove all private files first
             runOSCommand("git submodule foreach --recursive \"git clean -dfx\" && git clean -dfx")
             // Git pull required after first-time clone
@@ -754,7 +760,6 @@ def Build(String workDir, String buildConfig) {
 //-----------------------------------------------------------------------------
 def Package(String workDir, String buildConfig) {
     def stage = "Package"
-
     try {
         assert pysideVersion != ""
         def srcDir = "${workDir}/src"
@@ -996,8 +1001,5 @@ try {
 } catch (e) {
     errorHandler(e)
 } finally {
-    //def buildResult = getBuildResult(results, buildConfigs)
-    //println "Build Result:\n${buildResult}"
-    //results.each {k, v -> println "KeyResult: ${k}, KeyValue: ${v}" }
     notifyBuild(currentBuild.result, gitBranch)
 }
