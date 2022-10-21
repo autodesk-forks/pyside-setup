@@ -687,7 +687,6 @@ def Sync(String workDir, String buildConfig) {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'svc_p_mescm', usernameVariable: 'GITUSER', passwordVariable: 'GITPWD']]) {
                     runOSCommand "git clone --branch ${gitBranch} https://${GITUSER}:\"${GITPWD}\"@git.autodesk.com/autodesk-forks/pyside-setup.git . "
                 }
-                runOSCommand("git submodule update --init")
             }
             print "Commit: $gitCommit"
             //checkout scm to the commit_id
@@ -697,8 +696,6 @@ def Sync(String workDir, String buildConfig) {
 
             // Remove all private files first
             runOSCommand("git submodule foreach --recursive \"git clean -dfx\" && git clean -dfx")
-            // Git pull required after first-time clone
-            runOSCommand("git submodule update --init --recursive")
         }
 
         print "--- Download Packages ---"
