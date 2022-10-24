@@ -157,9 +157,9 @@ fi # [[ $SKIP_QT -eq 0 ]]
 
 # Which Python artifact to use - not used on all platforms
 declare -A pythonArtifactDownloadUris
-pythonArtifactDownloadUris["windows"]="team-maya-generic/python/3.9.7/cpython-3.9.7-win-001.zip"
-pythonArtifactDownloadUris["linux"]="team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-2.tar.gz"
-pythonArtifactDownloadUris["macos"]=""
+pythonArtifactDownloadUris["windows"]="team-maya-generic/python/3.10.6/cpython-3.10.6-win-MANUAL-2022_08_31_1430.zip"
+pythonArtifactDownloadUris["linux"]="team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-11.2.1-system_openssl-1.1.1k_MANUAL_202210211108.zip"
+pythonArtifactDownloadUris["macos"]="team-maya-generic/python/3.10.6/cpython-3.10.6-mac-universal2-expandedframework-MANUAL-2022_09_22_1000.tar.gz"
 pythonArtifactDownloadUri=${pythonArtifactDownloadUris[${OS}]}
 
 # Which OpenSSL artifact to use - not used on all platforms
@@ -172,10 +172,17 @@ opensslArtifactDownloadUri=${opensslArtifactDownloadUris[${OS}]}
 # Which libclang artifact to use - not used on all platforms
 declare -A libclangArtifactDownloadUris
 libclangArtifactDownloadUris["windows"]="team-maya-generic/libclang/release_140-based/libclang-release_140-based-windows-vs2019_64.zip"
-libclangArtifactDownloadUris["linux"]=""
-libclangArtifactDownloadUris["macos"]=""
+libclangArtifactDownloadUris["linux"]="team-maya-generic/libclang/release_140-based/libclang-release_140-based-linux-Rhel8.2-gcc9.2-x86_64.tar.gz"
+libclangArtifactDownloadUris["macos"]="team-maya-generic/libclang/release_140-based/libclang-release_140-based-macos-universal.tar.gz"
 libclangArtifactDownloadUri=${libclangArtifactDownloadUris[${OS}]}
-artifactDownloadUris=($pythonArtifactDownloadUri $opensslArtifactDownloadUri $libclangArtifactDownloadUri)
+
+# Which cmake artifact to use - not used on all platforms
+declare -A cmakeArtifactDownloadUris
+cmakeArtifactDownloadUris["windows"]=""
+cmakeArtifactDownloadUris["linux"]="team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz"
+cmakeArtifactDownloadUris["macos"]="team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip"
+cmakeArtifactDownloadUri=${cmakeArtifactDownloadUris[${OS}]}
+artifactDownloadUris=($pythonArtifactDownloadUri $opensslArtifactDownloadUri $libclangArtifactDownloadUri $cmakeArtifactDownloadUri)
 
 
 
