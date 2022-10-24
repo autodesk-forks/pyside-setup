@@ -3,6 +3,8 @@
 set -e # Terminate with failure if any command returns nonzero
 set -u # Terminate with failure any time an undefined variable is expanded
 
+echo -n "Start timestamp: "; date
+
 if [[ ! -f README.pyside6.md ]]; then
     echo >&2 "Please execute from the root of the pyside-setup repository."
     exit 1
@@ -15,6 +17,37 @@ if [[ $# -eq 0 ]]; then
 fi
 
 set +u
+
+isMacOS=0
+isLinux=0
+isWin=0
+DISTRO=""
+case $OSTYPE in
+  darwin*)
+    isMacOS=1
+    ;;
+  linux*)
+    isLinux=1
+    # Check for OS version in the same way that Jenkinsfile does.
+    distro=$(hostnamectl | awk '/Operating System/ { print $3 }')
+    if [[ "$distro" =~ "CentOS" ]]; then
+        DISTRO="centos7"
+    else
+        # Assuming RHEL8
+        DISTRO="rhel"
+    fi
+    ;;
+  msys*|cygwin*)
+    isWin=1
+    echo >&2 "error: Windows builds using this script is not supported yet"
+    # Need a way to source vcvarsall.
+    exit 1
+    ;;
+  *)
+    echo >&2 "error: running on unknown OS"
+    exit 1
+esac
+
 # Environment Variable - QTVERSION - Version of Qt used to build PySide6
 if [[ -z "${QTVERSION}" ]]; then
     echo >&2 "QTVERSION is undefined. Example: export QTVERSION=6.2.3"
@@ -34,20 +67,14 @@ if [[ ! ${PYSIDEVERSION} =~ ^[0-9]{1,2}\.[0-9]{1,3}\.[0-9]{1,3}(\.[1-9])?$ ]]; t
 fi
 echo "PYSIDEVERSION=${PYSIDEVERSION}"
 
-# Check for OS version in the same way that Jenkinsfile does.
-OS=
-distro=$(hostnamectl | awk '/Operating System/ { print $3 }')
-if [[ "$distro" =~ "CentOS" ]]; then
-    OS="centos7"
-else
-    # Assuming RHEL8
-    OS="rhel"
+if [[ $isMacOS -eq 1 ]]; then
+    # On macOS we do not use a debug python.
+    export PYTHONDEXE=$PYTHONEXE
 fi
-
 for pythonexe in ${PYTHONEXE} ${PYTHONDEXE}; do
     pythonexe_varname="PYTHONEXE"
     pythonconfig="RelWithDebInfo"
-    if [[ "$pythonexe" == "$PYTHONDEXE" ]]; then
+    if [[ "$pythonexe" == "$PYTHONDEXE" && "$PYTHONEXE" != "$PYTHONDEXE" ]]; then
         pythonexe_varname="PYTHONDEXE"
         pythonconfig="Debug"
     fi
@@ -57,7 +84,7 @@ for pythonexe in ${PYTHONEXE} ${PYTHONDEXE}; do
         if [[ -z "$pythonexe" ]]; then echo -n "${pythonexe_varname} is undefined. "; fi
         if [[ ! -e "$pythonexe" ]]; then echo -n "${pythonexe} doesn't exist. "; fi
         if [[ ! -x "$pythonexe" ]]; then echo -n "${pythonexe} isn't executable. "; fi
-        echo "Example: export ${pythonexe_varname}=$1/external_dependencies/cpython/3.9.5/${pythonconfig}/bin/python3.9"
+        echo "Example: export ${pythonexe_varname}=$1/external_dependencies/cpython/3.9.5/${pythonconfig}/bin/python"
         exit 1
     else
         echo "${pythonexe_varname}=${pythonexe}"
@@ -69,7 +96,7 @@ for pythonexe in ${PYTHONEXE} ${PYTHONDEXE}; do
         exit 1
     fi
 done
-
+set -u
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
 echo "PYTHONVERSION=${PYTHONVERSION}"
 
@@ -100,7 +127,6 @@ fi
 # used has a pymalloc suffix.
 export PYMALLOC_SUFFIX=
 
-
 # Location of the workspace directory (root)
 export WORKSPACE_DIR=$1
 
@@ -110,8 +136,8 @@ export EXTERNAL_DEPENDENCIES_DIR=$WORKSPACE_DIR/external_dependencies
 # Location of Qt build directory (in external dependencies)
 export QTPATH=$EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION
 
-if [[ "$OS" == "centos7" ]]; then
-    # Location of liblang directory (in external dependencies)
+if [[ $isLinux -eq 1 && "$DISTRO" == "centos7" ]]; then
+    # Location of libclang directory (in external dependencies)
     # Qt for Python will look for this environment variable.
     # Under RHEL8, PySide6 should be able to find LLVM from the path.
     export CLANG_INSTALL_DIR=$EXTERNAL_DEPENDENCIES_DIR/libclang
@@ -119,6 +145,9 @@ if [[ "$OS" == "centos7" ]]; then
     # Location of CMake directory (in external dependencies)
     # Latest CMake version in CentOS 7.6 is 2.8.x.x, but PySide6 requires a minimum of CMake 3.1
     export PATH=$EXTERNAL_DEPENDENCIES_DIR/cmake-3.13.3-Linux-x86_64/bin:$PATH
+elif [[ $isMacOS -eq 1 ]]; then
+    # Location of libclang directory (in external dependencies)
+    export CLANG_INSTALL_DIR=$EXTERNAL_DEPENDENCIES_DIR/libclang
 fi
 
 # Cleanup PREFIX and DIST dirs. See below for their definition.
@@ -135,28 +164,32 @@ do
     fi
 done
 
-
 # Create qt.conf file
 touch $EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION/bin/qt.conf
 echo [Paths] > $EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION/bin/qt.conf
 echo Prefix=.. >> $EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION/bin/qt.conf
 
 # Get the number of processors available to build PySide6
-export NUMBER_OF_PROCESSORS=`cat /proc/cpuinfo | grep processor | wc -l`
-
+if [[ $isMacOS -eq 1 ]]; then
+    export NUMBER_OF_PROCESSORS=`sysctl -n hw.ncpu`
+elif [[ $isLinux -eq 1 ]]; then
+    export NUMBER_OF_PROCESSORS=`cat /proc/cpuinfo | grep processor | wc -l`
+fi
 
 for BUILDTYPE in release debug;
 do
+    export DEBUG_SUFFIX=
     if [ "$BUILDTYPE" == "debug" ]; then
         export BUILDTYPE_STR="Debug"
         export PYTHON_EXE=$PYTHONDEXE
         export EXTRA_SETUP_PY_OPTS="--debug"
-        export DEBUG_SUFFIX=d
+        if [[ $isLinux -eq 1 ]]; then
+            export DEBUG_SUFFIX=d
+        fi
     else
         export BUILDTYPE_STR="Release"
         export PYTHON_EXE=$PYTHONEXE
         export EXTRA_SETUP_PY_OPTS=""
-        export DEBUG_SUFFIX=
     fi
 
     # By default, the pyside6-uic and pyside6-rcc wrappers are installed in the Python directory during the install step.
@@ -187,6 +220,7 @@ do
         echo >&2 "**** Failed to build **** $BUILDTYPE_STR Build"
         exit 1
     fi
+    echo -n "End ${BUILDTYPE} python setup.py install timestamp: "; date
     $PYTHON_EXE setup.py bdist_wheel --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
     if [ $? -eq 0 ]; then
         echo "==== Success ==== $BUILDTYPE_STR Build Wheel"
@@ -194,16 +228,24 @@ do
         echo >&2 "**** Failed to build **** $BUILDTYPE_STR Build Wheel"
         exit 1
     fi
+    echo -n "End ${BUILDTYPE} python setup.py bdist_wheel timestamp: "; date
 
     # Unpack the wheels
-    export WHEEL_SUFFIX=${PYSIDEVERSION}-${QTVERSION}-cp${PYTHONVERSION_AB}-cp${PYTHONVERSION_AB}
-    export WHEEL_SUFFIX=${WHEEL_SUFFIX}${DEBUG_SUFFIX}${PYMALLOC_SUFFIX}-linux_x86_64
+    export WHEEL_SUFFIX=${PYSIDEVERSION}-${QTVERSION}-cp${PYTHONVERSION_AB}-cp${PYTHONVERSION_AB}${DEBUG_SUFFIX}${PYMALLOC_SUFFIX}
+    if [[ $isMacOS -eq 1 ]]; then
+        export WHEEL_SUFFIX=${WHEEL_SUFFIX}-macosx_11_0_universal2
+    elif [[ $isLinux -eq 1 ]]; then
+        export WHEEL_SUFFIX=${WHEEL_SUFFIX}-linux_x86_64
+    fi
 
     export PYSIDE6_WHEEL=PySide6-${WHEEL_SUFFIX}.whl
     export SHIBOKEN6_WHEEL=shiboken6-${WHEEL_SUFFIX}.whl
     export SHIBOKEN6_GEN_WHEEL=shiboken6_generator-${WHEEL_SUFFIX}.whl
 
-    $PYTHON_EXE -m wheel unpack $DIST_DIR_BUILDTYPE/$PYSIDE6_WHEEL --dest=$DIST_DIR_BUILDTYPE
-    $PYTHON_EXE -m wheel unpack $DIST_DIR_BUILDTYPE/$SHIBOKEN6_WHEEL --dest=$DIST_DIR_BUILDTYPE
-    $PYTHON_EXE -m wheel unpack $DIST_DIR_BUILDTYPE/$SHIBOKEN6_GEN_WHEEL --dest=$DIST_DIR_BUILDTYPE
+    $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${PYSIDE6_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+    $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN6_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+    $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN6_GEN_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+    echo -n "End ${BUILDTYPE} wheel unpack timestamp: "; date
 done
+echo -n "End timestamp: "; date
+echo "==== Success ===="
