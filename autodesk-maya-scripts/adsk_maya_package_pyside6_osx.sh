@@ -10,23 +10,23 @@ fi
 # Parameter 1 - Absolute path to workspace directory
 if [ $# -eq 0 ]; then
     echo "Need to pass workspace directory to the script"
-	exit 1
+    exit 1
 fi
 
 # Environment Variable - QTVERSION - Version of Qt used to build PySide2
 if [[ -z "$QTVERSION" ]]; then
-	echo "QTVERSION is undefined. Example: export QTVERSION=5.15.2"
-	exit 1
+    echo "QTVERSION is undefined. Example: export QTVERSION=5.15.2"
+    exit 1
 else
-	echo "QTVERSION=$QTVERSION"
+    echo "QTVERSION=$QTVERSION"
 fi
 
 # Environment Variable - PYSIDEVERSION - Version of PySide2 built
 if [[ -z "$PYSIDEVERSION" ]]; then
-	echo "PYSIDEVERSION is undefined. Example: export PYSIDEVERSION=5.15.2"
-	exit 1
+    echo "PYSIDEVERSION is undefined. Example: export PYSIDEVERSION=5.15.2"
+    exit 1
 else
-	echo "PYSIDEVERSION=$PYSIDEVERSION"
+    echo "PYSIDEVERSION=$PYSIDEVERSION"
 fi
 
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide2 is built
@@ -92,7 +92,7 @@ EOF
 for BUILDTYPE in release debug
 do
     export DEBUG_SUFFIX=""
-	if [ "$BUILDTYPE" == "debug" ]; then
+    if [ "$BUILDTYPE" == "debug" ]; then
         export DEBUG_SUFFIX="d"
     fi
 
