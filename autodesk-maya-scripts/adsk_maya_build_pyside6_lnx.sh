@@ -67,37 +67,12 @@ if [[ ! ${PYSIDEVERSION} =~ ^[0-9]{1,2}\.[0-9]{1,3}\.[0-9]{1,3}(\.[1-9])?$ ]]; t
 fi
 echo "PYSIDEVERSION=${PYSIDEVERSION}"
 
-if [[ $isMacOS -eq 1 ]]; then
-    # On macOS we do not use a debug python.
-    export PYTHONDEXE=$PYTHONEXE
-fi
-for pythonexe in ${PYTHONEXE} ${PYTHONDEXE}; do
-    pythonexe_varname="PYTHONEXE"
-    pythonconfig="RelWithDebInfo"
-    if [[ "$pythonexe" == "$PYTHONDEXE" && "$PYTHONEXE" != "$PYTHONDEXE" ]]; then
-        pythonexe_varname="PYTHONDEXE"
-        pythonconfig="Debug"
-    fi
-
-    # Make sure the user has passed in a python executable to use
-    if [[ -z "$pythonexe" || ! -e "$pythonexe" ]]; then
-        if [[ -z "$pythonexe" ]]; then echo -n "${pythonexe_varname} is undefined. "; fi
-        if [[ ! -e "$pythonexe" ]]; then echo -n "${pythonexe} doesn't exist. "; fi
-        if [[ ! -x "$pythonexe" ]]; then echo -n "${pythonexe} isn't executable. "; fi
-        echo "Example: export ${pythonexe_varname}=$1/external_dependencies/cpython/3.9.5/${pythonconfig}/bin/python"
-        exit 1
-    else
-        echo "${pythonexe_varname}=${pythonexe}"
-    fi
-
-    pythonexe_version=$($pythonexe -c "import sys; v=sys.version_info; print('{}.{}.{}'.format(v.major, v.minor, v.micro))")
-    if [[ ! "$pythonexe_version" == "$PYTHONVERSION" ]]; then
-        echo >&2 "Expecting Python ${PYTHONVERSION}, but the python executable ${pythonexe} is ${pythonexe_version}. aborting."
-        exit 1
-    fi
-done
-set -u
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
+if [[ -z "${PYTHONVERSION}" ]]; then
+    echo >&2 "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.9.7"
+    exit 1
+fi
+set -u
 echo "PYTHONVERSION=${PYTHONVERSION}"
 
 # Extract MAJOR(A), MINOR(B), and REVISION(C) from PYTHONVERSION
@@ -121,6 +96,40 @@ if [[ ! "$PYTHONVERSION" =~ (3\.9\.7|3\.10\.[0-9]*) ]]; then
     exit 1
 fi
 
+set +u
+if [[ $isMacOS -eq 1 ]]; then
+    # On macOS we do not use a debug python.
+    export PYTHONDEXE=$PYTHONEXE
+fi
+for pythonexe in "${PYTHONEXE}" "${PYTHONDEXE}"; do
+    pythonexe_varname="PYTHONEXE"
+    pythonconfig="RelWithDebInfo"
+    if [[ "$pythonexe" == "$PYTHONDEXE" && "$PYTHONEXE" != "$PYTHONDEXE" ]]; then
+        pythonexe_varname="PYTHONDEXE"
+        pythonconfig="Debug"
+    fi
+
+    # Make sure the user has passed in a python executable to use
+    if [[ -z "$pythonexe" || ! -e "$pythonexe" ]]; then
+        if [[ -z "$pythonexe" ]]; then echo -n "${pythonexe_varname} is undefined. ";
+        elif [[ ! -e "$pythonexe" ]]; then echo -n "${pythonexe} doesn't exist. ";
+        elif [[ ! -x "$pythonexe" ]]; then echo -n "${pythonexe} isn't executable. "; fi
+        echo "Example: export ${pythonexe_varname}=$1/external_dependencies/cpython/3.9.5/${pythonconfig}/bin/python"
+        exit 1
+    else
+        eval export $pythonexe_varname=$(cd $(dirname $pythonexe); pwd)/$(basename $pythonexe)
+        eval pythonexe=\$$pythonexe_varname
+        echo "${pythonexe_varname}=${pythonexe}"
+    fi
+
+    pythonexe_version=$($pythonexe -c "import sys; v=sys.version_info; print('{}.{}.{}'.format(v.major, v.minor, v.micro))")
+    if [[ ! "$pythonexe_version" == "$PYTHONVERSION" ]]; then
+        echo >&2 "Expecting Python ${PYTHONVERSION}, but the python executable ${pythonexe} is ${pythonexe_version}. aborting."
+        exit 1
+    fi
+done
+set -u
+
 # Python 2.7.X and 3.7.X artifacts had files with the pymalloc suffix
 # Since we do not support those with PySide6, no suffix is used.
 # This variable is still present just in case a future python release
@@ -128,7 +137,7 @@ fi
 export PYMALLOC_SUFFIX=
 
 # Location of the workspace directory (root)
-export WORKSPACE_DIR=$1
+export WORKSPACE_DIR=$(cd $1; pwd)
 
 # Location of external dependencies directory
 export EXTERNAL_DEPENDENCIES_DIR=$WORKSPACE_DIR/external_dependencies
@@ -175,6 +184,7 @@ if [[ $isMacOS -eq 1 ]]; then
 elif [[ $isLinux -eq 1 ]]; then
     export NUMBER_OF_PROCESSORS=`cat /proc/cpuinfo | grep processor | wc -l`
 fi
+echo "NUMBER_OF_PROCESSORS=$NUMBER_OF_PROCESSORS"
 
 for BUILDTYPE in release debug;
 do
