@@ -55,10 +55,10 @@ def _get_py_library_win(build_type, py_version, py_prefix, py_libdir,
     dbg_postfix = "_d" if build_type == "Debug" else ""
     if OPTION["MAKESPEC"] == "mingw":
         static_lib_name = f"libpython{py_version.replace('.', '')}{dbg_postfix}.a"
-        return Path(py_libdir) / static_lib_name
+        return Path(py_libdir) / static_lib_name, py_include_dir
     v = py_version.replace(".", "")
     python_lib_name = f"python{v}{dbg_postfix}.lib"
-    return Path(py_libdir) / python_lib_name
+    return Path(py_libdir) / python_lib_name, py_include_dir
 
 
 def _get_py_library_unix(build_type, py_version, py_prefix, py_libdir,
@@ -84,7 +84,7 @@ def _get_py_library_unix(build_type, py_version, py_prefix, py_libdir,
         lib_name = f"libpython{py_version}{lib_suff}{lib_ext}"
         py_library = Path(py_libdir) / lib_name
         if py_library.exists():
-            return py_library
+            return py_library, py_include_dir
         libs_tried.append(py_library)
 
     # Try to find shared libraries which have a multi arch
@@ -97,7 +97,7 @@ def _get_py_library_unix(build_type, py_version, py_prefix, py_libdir,
             lib_name = f"libpython{py_version}{lib_suff}{lib_ext}"
             py_library = try_py_libdir / lib_name
             if py_library.exists():
-                return py_library
+                return py_library, py_include_dir
             libs_tried.append(py_library)
 
     # PYSIDE-535: See if this is PyPy.
@@ -109,7 +109,7 @@ def _get_py_library_unix(build_type, py_version, py_prefix, py_libdir,
             lib_name = f"libpypy{version_quirk}-c{lib_ext}"
             pypy_library = pypy_libdir / lib_name
             if pypy_library.exists():
-                return pypy_library
+                return pypy_library, py_include_dir
             libs_tried.append(pypy_library)
     _libs_tried = ', '.join(libs_tried)
     raise SetupError(f"Failed to locate the Python library with {_libs_tried}")
@@ -118,15 +118,15 @@ def _get_py_library_unix(build_type, py_version, py_prefix, py_libdir,
 def get_py_library(build_type, py_version, py_prefix, py_libdir, py_include_dir):
     """Find the Python library"""
     if sys.platform == "win32":
-        py_library = _get_py_library_win(build_type, py_version, py_prefix,
-                                         py_libdir, py_include_dir)
+        py_library, py_include_dir = _get_py_library_win(build_type, py_version, py_prefix,
+                                                         py_libdir, py_include_dir)
     else:
-        py_library = _get_py_library_unix(build_type, py_version, py_prefix,
-                                          py_libdir, py_include_dir)
+        py_library, py_include_dir = _get_py_library_unix(build_type, py_version, py_prefix,
+							  py_libdir, py_include_dir)
     if str(py_library).endswith('.a'):
         # Python was compiled as a static library
         log.error(f"Failed to locate a dynamic Python library, using {py_library}")
-    return py_library
+    return py_library, py_include_dir
 
 
 class BuildInfoCollectorMixin(object):
@@ -288,8 +288,8 @@ class BuildInfoCollectorMixin(object):
         self.py_include_dir = Path(py_include_dir)
 
         if not self.is_cross_compile:
-            self.py_library = get_py_library(build_type, py_version, py_prefix,
-                                             py_libdir, py_include_dir)
+            self.py_library, self.py_include_dir = get_py_library(build_type, py_version, py_prefix,
+                                                                  py_libdir, py_include_dir)
         self.py_version = py_version
         self.build_type = build_type
 
