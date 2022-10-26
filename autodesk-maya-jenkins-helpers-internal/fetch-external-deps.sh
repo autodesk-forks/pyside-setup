@@ -302,7 +302,14 @@ for artifactDownloadUri in ${artifactDownloadUris[@]}; do
                 exit 1
             fi
         else
-            tar zxvf "$artifactBasename" | python -c "
+            if [[ "$artifactBasename" =~ .*\.zip ]]; then
+                cmd="unzip"
+            elif [[ "$artifactBasename" =~ .*\.tar.xz ]]; then
+                cmd="tar Jxvf"
+            else
+                cmd="tar zxvf"
+            fi
+            $cmd "$artifactBasename" | python -c "
 import sys
 for line in sys.stdin:
     sys.stdout.write('.')
