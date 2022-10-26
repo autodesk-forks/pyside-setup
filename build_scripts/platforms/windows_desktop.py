@@ -126,7 +126,7 @@ def prepare_packages_win32(pyside_build, _vars):
             filters.extend(["lrelease.exe", "lupdate.exe", "uic.exe",
                             "rcc.exe", "qmllint.exe", "qmltyperegistrar.exe",
                             "assistant.exe", "designer.exe", "qmlimportscanner.exe",
-                            "linguist.exe", "qmlformat.exe", "qmlls.exe"])
+                            "linguist.exe", "qmlformat.exe"])
         copydir("{install_dir}/bin/", destination_qt_dir,
                 _filter=filters,
                 recursive=False, _vars=_vars)

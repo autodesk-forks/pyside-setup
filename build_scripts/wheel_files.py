@@ -499,7 +499,6 @@ def module_QtQml() -> ModuleData:
 
     data.extra_files.append("qmllint*")
     data.extra_files.append("qmlformat*")
-    data.extra_files.append("qmlls*")
 
     return data
 

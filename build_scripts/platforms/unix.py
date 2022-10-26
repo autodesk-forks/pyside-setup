@@ -134,7 +134,7 @@ def prepare_packages_posix(pyside_build, _vars, cross_build=False):
             lib_exec_filters.extend(['uic', 'rcc', 'qmltyperegistrar', 'qmlimportscanner'])
             executables.extend(copydir(
                 "{install_dir}/bin/", destination_dir,
-                _filter=["lrelease", "lupdate", "qmllint", "qmlformat", "qmlls"],
+                _filter=["lrelease", "lupdate", "qmllint", "qmlformat"],
                 recursive=False, _vars=_vars))
             # Copying assistant/designer
             executables.extend(_copy_gui_executable('assistant', _vars=_vars))

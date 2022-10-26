@@ -15,7 +15,6 @@ PYSIDE_LINUX_BIN_TOOLS = ["lupdate",
                           "lrelease",
                           "qmllint",
                           "qmlformat",
-                          "qmlls",
                           "assistant",
                           "designer",
                           "linguist"]
