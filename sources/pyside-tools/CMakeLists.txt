@@ -24,8 +24,7 @@ if(NOT NO_QT_TOOLS STREQUAL "yes")
                       "${TOOLS_PATH}/lrelease${CMAKE_EXECUTABLE_SUFFIX}"
                       "${TOOLS_PATH}/lupdate${CMAKE_EXECUTABLE_SUFFIX}"
                       "${TOOLS_PATH}/qmllint${CMAKE_EXECUTABLE_SUFFIX}"
-                      "${TOOLS_PATH}/qmlformat${CMAKE_EXECUTABLE_SUFFIX}"
-                      "${TOOLS_PATH}/qmlls${CMAKE_EXECUTABLE_SUFFIX}")
+                      "${TOOLS_PATH}/qmlformat${CMAKE_EXECUTABLE_SUFFIX}")
 
     if (APPLE)
         list(APPEND directories "${TOOLS_PATH}/Assistant.app"

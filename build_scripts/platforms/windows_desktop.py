@@ -135,7 +135,7 @@ def prepare_packages_win32(self, _vars):
             filters.extend(["lrelease.exe", "lupdate.exe", "uic.exe",
                             "rcc.exe", "qmllint.exe", "qmltyperegistrar.exe"
                             "assistant.exe", "designer.exe", "qmlimportscanner.exe",
-                            "linguist.exe", "qmlformat.exe", "qmlls.exe"])
+                            "linguist.exe", "qmlformat.exe"])
         copydir(
             "{install_dir}/bin/",
             "{st_build_dir}/{st_package_name}",
