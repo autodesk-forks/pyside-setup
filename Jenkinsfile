@@ -674,7 +674,7 @@ def Setup(String buildConfig) {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Rhel8.tar.gz"
             artifacts[buildConfig]  = ["${QtArtifact_Rhel8}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-linux-Rhel8.2-gcc9.2-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz"]
             if (params.PythonVersion == '3.10.6') {
-                artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-9.3.1-openssl-1.1.1k_MANUAL.zip"
+                artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-11.2.1-system_openssl-1.1.1k_MANUAL_202210211108.zip"
             } else if (params.PythonVersion == '3.9.7') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-2.tar.gz"
             }
