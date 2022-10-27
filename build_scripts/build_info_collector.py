@@ -68,7 +68,11 @@ def _get_py_library_unix(build_type, py_version, py_prefix, py_libdir,
         py_libdir = Path(py_prefix) / "lib"
     if py_include_dir is None or not Path(py_include_dir).exists():
         directory = f"include/python{py_version}"
-        py_include_dir = Path(py_prefix) / directory
+        debug_directory = f"{directory}d"
+        if (Path(py_prefix) / debug_directory).exists():
+            py_include_dir = Path(py_prefix) / debug_directory
+        else:
+            py_include_dir = Path(py_prefix) / directory
     lib_exts = ['.so']
     if sys.platform == 'darwin':
         lib_exts.append('.dylib')
