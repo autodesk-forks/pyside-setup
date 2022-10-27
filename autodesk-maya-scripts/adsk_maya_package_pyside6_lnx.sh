@@ -1,22 +1,43 @@
 #!/usr/bin/env bash
 
-# Bash script safety
-set -e # Terminate with error if any external command returns nonzero exit status (use || true to accept nonzero exit statuses)
-set -u # Terminate with error if any undefined variable is dereferenced.
+set -e # Terminate with failure if any command returns nonzero
+set -u # Terminate with failure any time an undefined variable is expanded
 
-if [ ! -f README.pyside6.md ] ; then
+COMPRESS=0
+kept_args=()
+for arg in "$@"; do
+  case $arg in
+    -z|--compress)
+        if [[ $COMPRESS -eq 0 ]]; then
+            echo >&2 "Compressing like Jenkinsfile Packaging does."
+            COMPRESS=1
+        fi
+        shift
+        ;;
+    -*|--*)
+        echo >&2 "Unknown option $arg"
+        exit 1
+        ;;
+    *)
+        kept_args+=($arg)
+        ;;
+  esac
+done
+set -- "${kept_args[@]}"
+
+if [[ ! -f README.pyside6.md ]] ; then
     echo >&2 "Please execute from the root of the pyside-setup repository."
     exit 1
 fi
 
 # Parameter 1 - Absolute path to workspace directory
-if [ $# -eq 0 ]; then
+if [[ $# -eq 0 ]]; then
     echo >&2 "Need to pass workspace directory to the script."
     exit 1
 fi
 
-# Environment Variable - QTVERSION - Version of Qt used to build PySide6
 set +u
+# Environment Variable - QTVERSION - Version of Qt used to build PySide6
 if [[ -z "${QTVERSION}" ]]; then
     echo >&2 "QTVERSION is undefined, please set. Example: export QTVERSION=6.2.3"
     exit 1
@@ -31,7 +52,6 @@ if [[ -z "${PYSIDEVERSION}" ]]; then
 else
     echo "PYSIDEVERSION=${PYSIDEVERSION}"
 fi
-
 
 # Location of the workspace directory (root)
 export WORKSPACE_DIR=$1
@@ -49,7 +69,7 @@ if [[ -z "$PYTHONVERSION" && -d $EXTERNAL_DEPENDENCIES_DIR/cpython ]]; then
 fi
 
 if [[ -z "$PYTHONVERSION" ]]; then
-    echo >&2 "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.9.7"
+    echo >&2 "PYTHONVERSION is undefined. Example: export PYTHONVERSION=3.7.7"
     exit 1
 else
     echo "PYTHONVERSION=${PYTHONVERSION}"
@@ -67,40 +87,65 @@ PYTHONVERSION_AB=${PYTHONVERSION_A}${PYTHONVERSION_B}
 PYTHONVERSION_AdotB=${PYTHONVERSION_A}.${PYTHONVERSION_B}
 
 # Validate that the Python version given is within the accepted values
-if [[ ! "$PYTHONVERSION_A" == "3" ]]; then
-    echo >&2 "Only Python 3 is supported, please specify a Python 3 version."
+if [[ ! "$PYTHONVERSION" =~ (3\.9\.7|3\.10\.[0-9]*) ]]; then
+    # We expect the python version to be 3.9.7, or 3.10.x
+    # right now. It will change in the future, and at that time this
+    # check should be updated to reflect the newly supported python
+    # versions.
+    echo >&2 "Expecting Python 3.9.7, or 3.10.x. aborting."
     echo >&2 "Example: export PYTHONVERSION=3.9.7"
     exit 1
 fi
 
-# Python 3.9.7 artifacts don't have any pymalloc suffix, but future python builds might. Leaving this in place.
+# Check for patchelf
+export PATCHELF=patchelf
+set +e
+$PATCHELF --version
+if [[ $? -ne 0 ]]; then
+    echo >&2 "Couldn't find patchelf. aborting."
+    exit 1
+fi
+set -e
+
+# Python 2.7.X and 3.7.X artifacts had files with the pymalloc suffix
+# Since we do not support those with PySide6, no suffix is used.
+# This variable is still present just in case a future python release
+# used has a pymalloc suffix.
 export PYMALLOC_SUFFIX=
 
+
 # Location of the install directory within the workspace (where the builds will be located)
-export INSTALL_DIR=$WORKSPACE_DIR/install
+export INSTALL_DIR="${WORKSPACE_DIR}/install"
 
 # Location of the pyside6-uic and pyside6-rcc wrappers (determined by the --prefix option in the build script)
-export PREFIX_DIR=$WORKSPACE_DIR/build
+export PREFIX_DIR="${WORKSPACE_DIR}/build"
 
 # Location of the pyside6-uic and pyside6-rcc .dist-info metadata folders (determined by the --dist-dir option in the build script)
-export DIST_DIR=$WORKSPACE_DIR/dist
+export DIST_DIR="${WORKSPACE_DIR}/dist"
 
-# Change to the directory we expect to be in - the root of the pyside-setup repo.
-cd ${WORKSPACE_DIR}/src
+# Validate that PREFIX_DIR and DIST_DIR exist.
 
-export PATCHELF=patchelf
-if [[ -e $INSTALL_DIR ]]; then
-    rm -Rf $INSTALL_DIR
+for dir in "$PREFIX_DIR" "$DIST_DIR"; do
+    if [[ ! -d "$dir" ]]; then
+        echo >&2 "$dir does not exist. aborting."
+        exit 1
+    fi
+done
+
+if [[ -e "$INSTALL_DIR" ]]; then
+    echo >&2 "It looks like packaging already happened."
+    echo >&2 "Please remove ${INSTALL_DIR} and try again. aborting."
+    exit 1
 fi
-mkdir -p $INSTALL_DIR
+
+mkdir "$INSTALL_DIR"
 
 export PATH_TO_MAYAPY_REGEX='1s/.*/\#\!\/usr\/bin\/env mayapy/'
-echo "Built for Python ${PYTHONVERSION_A}"
 
 
 # Write PySide6 build information to a "pyside6_version" file
 # instead of encoding the pyside version number in a directory name
-cat <<EOF >${INSTALL_DIR}/pyside6_version
+cat <<EOF >"${INSTALL_DIR}/pyside6_version"
 PySide6 $PYSIDEVERSION
 Qt $QTVERSION
 Python version $PYTHONVERSION
@@ -138,10 +183,10 @@ do
     # the --prefix directory into the artifact's /bin folder
     wrappers=$(ls ${PREFIX_DIR}/${BUILDTYPE}/bin/pyside6-* ${PREFIX_DIR}/${BUILDTYPE}/bin/shiboken6*)
     for wrapper in ${wrappers} ; do
-        cp $wrapper $PYSIDE6_ROOT_DIR/bin/
+        cp "$wrapper" "$PYSIDE6_ROOT_DIR/bin/"
 
         # Replace interpreter path for relative path to mayapy
-        sed -i -e "${PATH_TO_MAYAPY_REGEX}" $PYSIDE6_ROOT_DIR/bin/$(basename $wrapper)
+        sed -i -e "${PATH_TO_MAYAPY_REGEX}" "$PYSIDE6_ROOT_DIR/bin/$(basename $wrapper)"
     done
 
     # Copy the .dist-info metadata folders, since the pyside6-uic and pyside6-rcc wrappers rely on [console_scripts] entrypoints.
@@ -154,7 +199,7 @@ do
     # Copy uic and rcc executable files into site-packages/PySide6, since it is the first search location for loadUiType.
     for sitepackagesfile in rcc uic
     do
-        ln -s ../../../../bin/${sitepackagesfile} "${PYSIDE6_ROOT_DIR}/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$sitepackagesfile"
+        ln -s "../../../../bin/${sitepackagesfile}" "${PYSIDE6_ROOT_DIR}/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$sitepackagesfile"
     done
 
     # Copy the 'scripts' PySide6 sudmodules folder manually, since the pyside6-uic and pyside6-rcc wrappers invoke
@@ -170,7 +215,7 @@ do
 
     echo "Changing RUNPATHs (Python 3 - ${BUILDTYPE})"
     export DEBUG_SUFFIX=
-    if [ "$BUILDTYPE" == "debug" ]; then
+    if [[ "$BUILDTYPE" == "debug" ]]; then
         export DEBUG_SUFFIX=d
     fi
 
@@ -178,7 +223,7 @@ do
     for binfile in ${binfiles}
     do
         export binfilepath="$PYSIDE6_ROOT_DIR/bin/$binfile"
-        if [ -e "$binfilepath" ]; then
+        if [[ -e "$binfilepath" ]]; then
             $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$binfilepath"
         fi
     done
@@ -203,26 +248,24 @@ do
 done
 echo "==== Finished Assembling ===="
 
-
-# If running manually, not with Jenkins, you will likely want to create a tarball named similarly to what Jenkins names it.
-# This does that. Just pass -z as the second parameter to the script.
-set +u
-if [[ "$2" == "-z" ]]; then
-    set -u
-    echo "Creating tarball..."
-    cd ../install
-    OUTDIR="../out"
-    if [[ -e $OUTDIR ]]; then
-        rm -Rf $OUTDIR
-    fi
-    mkdir $OUTDIR
-    packageDate=$(date +%Y-%m-%d-%H-%M)
-    buildID=$(echo $packageDate | sed -e 's/-//')
-    gitCommitShort=$(git -C ../src rev-parse HEAD | cut -c8)
-    tarball="$OUTDIR/$buildID-$gitCommitShort-MANUAL-Maya-PySide6-Linux.tar.gz"
-    tar -czf "$tarball" *
-    echo "==== Finished ===="
-    echo "Tarball $(realpath $tarball) created."
+if [[ $COMPRESS -ne 0 ]]; then
+    buildID=$(date +%Y%m%d%H%M)
+    gitCommitShort=$(git rev-parse HEAD | cut -c1-8)
+    cd "$INSTALL_DIR"
+    outdir=$(realpath "../out")
+    tarballPath="${outdir}/${buildID}-${gitCommitShort}-MANUAL-Maya-PySide6-Linux.tar.gz"
+    mkdir -p "$outdir"
+    echo -n "Creating tarball $tarballPath"
+    tar -czvf "$tarballPath" * | python -c "
+import sys
+for line in sys.stdin:
+    sys.stdout.write('.')
+    sys.stdout.flush()
+print()"
+    echo
+    echo "Tarball $tarballPath created."
     echo "Upload this to artifactory under:"
     echo "    team-maya-generic/pyside6/$PYSIDEVERSION/Maya/Qt$QTVERSION/Python$PYTHONVERSION_AdotB/$packageDate"
 fi
+
+echo "==== Finished ===="
