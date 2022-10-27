@@ -121,11 +121,11 @@ for pythonexe in "${PYTHONEXE}" "${PYTHONDEXE}"; do
 done
 
 # Environment Variable - PYSIDEVERSION - Version of PySide6 built
-if [[ -z "${PYSIDEVERSION}" || "${PYSIDEVERSION^^}" == "PREFLIGHT" ]]; then
+if [[ -z "${PYSIDEVERSION}" || "${PYSIDEVERSION}" == "PREFLIGHT" ]]; then
     # Figure out PYSIDEVERSION from the codebase.
     export PYSIDEVERSION=$($PYTHONEXE $SCRIPT_DIR/fetch-qt-version.py)
 fi
-if [[ ! ${PYSIDEVERSION} =~ ^[0-9]{1,2}\.[0-9]{1,3}\.[0-9]{1,3}(\.[1-9])?$ ]]; then
+if [[ ! ${PYSIDEVERSION} =~ ^[0-9]{1,2}\.[0-9]{1,3}\.[0-9]{1,3}(\.[1-9])?([ab][0-9])?$ ]]; then
     echo "PYSIDEVERSION is invalid. It should be a version number. Example: export PYSIDEVERSION=6.2.3"
     exit 1
 fi
