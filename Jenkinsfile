@@ -5,7 +5,7 @@ properties([
   disableConcurrentBuilds(),
   parameters([
     string(name: 'COMMIT', defaultValue: "", description: 'Commit ID to build from (optional)'),
-    string(name: 'QtVersion', defaultValue: 'latest'),
+    choice(name: 'QtVersion', choices:['match', '6.4.0', '6.2.3', '5.15.2'], description: 'Qt version (format: A.B.C). \'match\' means use Qt matching PySide6 version'),
     string(name: 'QtBuildID', defaultValue: 'latest', description: 'Qt Build ID on Artifactory (format: AAAA-MM-DD-hh-mm)'),
     choice(name: 'PythonVersion', choices:['3.10.6', '3.9.7'], description: 'Python version (format: A.B.C)'),
   ])
@@ -212,6 +212,18 @@ def getChangeSetString(String commitInfo) {
 
 //-----------------------------------------------------------------------------
 def getQtVersion(String qtVer, String artifactoryURL) {
+    def matches
+    if (qtVer == 'match') {
+        matches = (pysideVersion =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3})(?:\.(\d{1,3}))?$/)
+        if (matches) {
+            def (_, major_minor_patch, revision) = matches[0]
+            qtVer = major_minor_patch
+        } else {
+            error("**** Error:  pysideVersion is in an unexpected format. Expecting #.#.#(.#)? ***** ")
+            return ""
+        }
+    }
+
     def response = sh (
         script: "curl -s -X GET ${artifactoryURL}",
         returnStdout: true
@@ -220,6 +232,7 @@ def getQtVersion(String qtVer, String artifactoryURL) {
     def repo = info.repo
     def path = info.path
     def qtVersionList = info.children
+    def qtVersionTriplet = ""
     def qtVersionURL
     def qtVersionFound = ""
 
@@ -236,8 +249,17 @@ EOF"""
     print("sorted Qt versions: " + versions)
 
     for (version in versions) {
-        qtVersionURL = artifactoryURL + "/" + version + "/Maya"
-        if ((qtVer == 'latest' && qtVersionFound == "") || qtVer == version) {
+        versionTriplet = ""
+        matches = (version =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3})(?:\.(\d{1,3}))?$/)
+        if (matches) {
+            def (_, major_minor_patch, revision) = matches[0]
+            versionTriplet = major_minor_patch
+        } else {
+            print("**** Warning: Skipping invalid pyside version ${version}. Expecting format of #.#.#(.#)? ***** ")
+        }
+
+        qtVersionURL = artifactoryURL + "/" + versionTriplet + "/Maya"
+        if (qtVer == versionTriplet) {
             response = sh (
                 script: "curl -s -X GET ${qtVersionURL}",
                 returnStdout: true
