@@ -212,14 +212,26 @@ def getChangeSetString(String commitInfo) {
 
 //-----------------------------------------------------------------------------
 @NonCPS
+def matchPysideVersion(String version) {
+    def matches = (version =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3})(?:\.(\d{1,3}))?([ab]\d)?$/)
+    if (matches) {
+        def major_minor_patch = matches[0][1]
+        def revision = matches[0][2]
+        def prerelease = matches[0][3]
+        return [major_minor_patch, revision, prerelease]
+    } else {
+        return null
+    }
+}
+
 def getQtVersion(String qtVer, String artifactoryURL) {
-    def matches
+    def versionComponents
     if (qtVer == 'match') {
-        matches = (pysideVersion =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3})(?:\.(\d{1,3}))?([ab]\d)?$/)
-        if (matches) {
-            def major_minor_patch = matches[0][1]
-            def revision = matches[0][2]
-            def prerelease = matches[0][3]
+        versionComponents = matchPysideVersion(pysideVersion)
+        if (versionComponents) {
+            def major_minor_patch = versionComponents[0]
+            def revision = versionComponents[1]
+            def prerelease = versionComponents[2]
             println("pysideVersion: " + major_minor_patch + ", " + revision + ", " + prerelease)
             qtVer = major_minor_patch
         } else {
@@ -254,11 +266,11 @@ EOF"""
 
     for (version in versions) {
         versionTriplet = ""
-        matches = (version =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3})(?:\.(\d{1,3}))?([ab]\d)?$/)
-        if (matches) {
-            def major_minor_patch = matches[0][1]
-            def revision = matches[0][2]
-            def prerelease = matches[0][3]
+        versionComponents = matchPysideVersion(version)
+        if (versionComponents) {
+            def major_minor_patch = versionComponents[0]
+            def revision = versionComponents[1]
+            def prerelease = versionComponents[2]
             println("Checking version: " + major_minor_patch + ", " + revision + ", " + prerelease)
             versionTriplet = major_minor_patch
         } else {
