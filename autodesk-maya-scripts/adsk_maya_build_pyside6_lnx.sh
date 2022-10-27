@@ -147,18 +147,20 @@ export EXTERNAL_DEPENDENCIES_DIR=$WORKSPACE_DIR/external_dependencies
 # Location of Qt build directory (in external dependencies)
 export QTPATH=$EXTERNAL_DEPENDENCIES_DIR/qt_$QTVERSION
 
-if [[ $isLinux -eq 1 && "$DISTRO" == "centos7" ]]; then
+if [[ $isLinux -eq 1 ]]; then
     # Location of libclang directory (in external dependencies)
     # Qt for Python will look for this environment variable.
-    # Under RHEL8, PySide6 should be able to find LLVM from the path.
     export CLANG_INSTALL_DIR=$EXTERNAL_DEPENDENCIES_DIR/libclang
 
     # Location of CMake directory (in external dependencies)
-    # Latest CMake version in CentOS 7.6 is 2.8.x.x, but PySide6 requires a minimum of CMake 3.1
-    export PATH=$EXTERNAL_DEPENDENCIES_DIR/cmake-3.13.3-Linux-x86_64/bin:$PATH
+    # Platform cmake is probably good enough, but just in case, we will use an
+    # artifact.
+    export PATH=$EXTERNAL_DEPENDENCIES_DIR/cmake-3.22.1-linux-x86_64/bin:$PATH
 elif [[ $isMacOS -eq 1 ]]; then
     # Location of libclang directory (in external dependencies)
     export CLANG_INSTALL_DIR=$EXTERNAL_DEPENDENCIES_DIR/libclang
+
+    # Platform cmake is good enough.
 fi
 
 # Cleanup PREFIX and DIST dirs. See below for their definition.
