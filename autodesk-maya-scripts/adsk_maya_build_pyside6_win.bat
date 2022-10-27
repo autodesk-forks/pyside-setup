@@ -91,7 +91,8 @@ set WHEEL_EXE=%PYTHON_DIR%\RelWithDebInfo\Scripts\wheel.exe
 REM Environment Variable - PYSIDEVERSION - Version of PySide6 built
 if not defined PYSIDEVERSION (
     REM Determine PYSIDEVERSION from the codebase.
-    FOR /F "delims=" %o IN ('%PYTHONEXE% %SCRIPT_DIR%\fetch-qt-version.py') DO set PYSIDEVERSION=%o
+    setlocal EnableDelayedExpansion
+    FOR /F %%i IN ('%PYTHONEXE% %SCRIPT_DIR%\fetch-qt-version.py') DO set PYSIDEVERSION=%%i
 )
 echo PYSIDEVERSION=%PYSIDEVERSION%
 
