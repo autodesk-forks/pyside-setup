@@ -185,7 +185,7 @@ sed -i -e 's/\(PyType_Slot\ \*slots\)_/\1/' %PYTHON_DIR%/RelWithDebInfo/include/
 %PYTHON_EXE% setup.py bdist_wheel --relwithdebinfo --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside6 bdist_wheel Release ****" && exit /b 1
 
 REM Unpack the wheels
-set WHEEL_SUFFIX=%QTVERSION%-%PYSIDEVERSION%-cp%PYTHONVERSION_AB%-cp%PYTHONVERSION_AB%%PYMALLOC_SUFFIX%-win_amd64
+set WHEEL_SUFFIX=%PYSIDEVERSION%-%QTVERSION%-cp%PYTHONVERSION_AB%-cp%PYTHONVERSION_AB%%PYMALLOC_SUFFIX%-win_amd64
 
 set PYSIDE6_WHEEL=PySide6-%WHEEL_SUFFIX%.whl
 set SHIBOKEN6_WHEEL=shiboken6-%WHEEL_SUFFIX%.whl
