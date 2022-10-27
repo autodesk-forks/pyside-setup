@@ -211,12 +211,16 @@ def getChangeSetString(String commitInfo) {
 }
 
 //-----------------------------------------------------------------------------
+@NonCPS
 def getQtVersion(String qtVer, String artifactoryURL) {
     def matches
     if (qtVer == 'match') {
-        matches = (pysideVersion =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3})(?:\.(\d{1,3}))?$/)
+        matches = (pysideVersion =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3})(?:\.(\d{1,3}))?([ab]\d)?$/)
         if (matches) {
-            def (_, major_minor_patch, revision) = matches[0]
+            def major_minor_patch = matches[0][1]
+            def revision = matches[0][2]
+            def prerelease = matches[0][3]
+            println("pysideVersion: " + major_minor_patch + ", " + revision + ", " + prerelease)
             qtVer = major_minor_patch
         } else {
             error("**** Error:  pysideVersion is in an unexpected format. Expecting #.#.#(.#)? ***** ")
@@ -250,9 +254,12 @@ EOF"""
 
     for (version in versions) {
         versionTriplet = ""
-        matches = (version =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3})(?:\.(\d{1,3}))?$/)
+        matches = (version =~ /^(\d{1,3}\.\d{1,3}\.\d{1,3})(?:\.(\d{1,3}))?([ab]\d)?$/)
         if (matches) {
-            def (_, major_minor_patch, revision) = matches[0]
+            def major_minor_patch = matches[0][1]
+            def revision = matches[0][2]
+            def prerelease = matches[0][3]
+            println("Checking version: " + major_minor_patch + ", " + revision + ", " + prerelease)
             versionTriplet = major_minor_patch
         } else {
             print("**** Warning: Skipping invalid pyside version ${version}. Expecting format of #.#.#(.#)? ***** ")
