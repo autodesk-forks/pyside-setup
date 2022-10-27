@@ -1,4 +1,7 @@
 @echo off
+
+set SCRIPTDIR=%~dp0.
+
 REM Parameter 1 - Absolute path to workspace directory
 if [%1]==[] (
     echo error: need to pass workspace directory to the script
@@ -25,15 +28,6 @@ if not defined QTVERSION (
     exit /b 1
 ) else (
     echo QTVERSION=%QTVERSION%
-)
-
-REM Environment Variable - PYSIDEVERSION - Version of PySide6 built
-if not defined PYSIDEVERSION (
-    echo PYSIDEVERSION is undefined.  Example: SET PYSIDEVERSION=6.2.3
-    echo aborting.
-    exit /b 1
-) else (
-    echo PYSIDEVERSION=%PYSIDEVERSION%
 )
 
 REM Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
@@ -85,6 +79,23 @@ REM Location of openssl directory (optional) - (in external dependencies)
 set OPENSSLPATH=%EXTERNAL_DEPENDENCIES_DIR%\openssl\1.1.1g
 
 
+REM Location of python 3 directory (in external dependencies)
+set PYTHON_DIR=%EXTERNAL_DEPENDENCIES_DIR%\cpython\%PYTHONVERSION%
+
+REM In Maya's python 3 module, the executables are located at the root of their respective build type folder (release or debug)
+set PYTHON_EXE=%PYTHON_DIR%\RelWithDebInfo\python.exe
+set PYTHON_D_EXE=%PYTHON_DIR%\Debug\python_d.exe
+set PYTHONEXEPATH=%PYTHON_DIR%\RelWithDebInfo;%PYTHON_DIR%\RelWithDebInfo\DLLs
+set WHEEL_EXE=%PYTHON_DIR%\RelWithDebInfo\Scripts\wheel.exe
+
+REM Environment Variable - PYSIDEVERSION - Version of PySide6 built
+if not defined PYSIDEVERSION (
+    REM Determine PYSIDEVERSION from the codebase.
+    FOR /F "delims=" %o IN ('%PYTHONEXE% %SCRIPT_DIR%\fetch-qt-version.py') DO set PYSIDEVERSION=%o
+)
+echo PYSIDEVERSION=%PYSIDEVERSION%
+
+
 REM By default, the pyside6-uic and pyside6-rcc wrappers are installed in the Python directory during the install step.
 REM Using the --prefix option, we specify a different location where to output the files, which makes it easier to copy
 REM the wrappers in the /bin folder when packaging.
@@ -116,15 +127,6 @@ if exist %DIST_DIR_DEBUG% (
 )
 mkdir "%DIST_DIR_RELWITHDEBINFO%"
 mkdir "%DIST_DIR_DEBUG%"
-
-REM Location of python 3 directory (in external dependencies)
-set PYTHON_DIR=%EXTERNAL_DEPENDENCIES_DIR%\cpython\%PYTHONVERSION%
-
-REM In Maya's python 3 module, the executables are located at the root of their respective build type folder (release or debug)
-set PYTHON_EXE=%PYTHON_DIR%\RelWithDebInfo\python.exe
-set PYTHON_D_EXE=%PYTHON_DIR%\Debug\python_d.exe
-set PYTHONEXEPATH=%PYTHON_DIR%\RelWithDebInfo;%PYTHON_DIR%\RelWithDebInfo\DLLs
-set WHEEL_EXE=%PYTHON_DIR%\RelWithDebInfo\Scripts\wheel.exe
 
 REM Python 3.9.7 artifacts don't have any pymalloc suffix, but future python builds might. Leaving this in place.
 set PYMALLOC_SUFFIX=
