@@ -3,6 +3,8 @@
 set -e # Terminate with failure if any command returns nonzero
 set -u # Terminate with failure any time an undefined variable is expanded
 
+SCRIPT_DIR="$(cd -P "$(dirname "$BASH_SOURCE")" >/dev/null 2>&1 && pwd)"
+
 echo -n "Start timestamp: "; date
 
 if [[ ! -f README.pyside6.md ]]; then
@@ -55,17 +57,6 @@ if [[ -z "${QTVERSION}" ]]; then
 else
     echo "QTVERSION=${QTVERSION}"
 fi
-
-# Environment Variable - PYSIDEVERSION - Version of PySide6 built
-if [[ -z "${PYSIDEVERSION}" || "${PYSIDEVERSION^^}" == "PREFLIGHT" ]]; then
-    # Assume PYSIDEVERSION matches QTVERSION, as it should anyway...
-    export PYSIDEVERSION=$QTVERSION
-fi
-if [[ ! ${PYSIDEVERSION} =~ ^[0-9]{1,2}\.[0-9]{1,3}\.[0-9]{1,3}(\.[1-9])?$ ]]; then
-    echo "PYSIDEVERSION is invalid. It should be a version number. Example: export PYSIDEVERSION=6.2.3"
-    exit 1
-fi
-echo "PYSIDEVERSION=${PYSIDEVERSION}"
 
 # Environment Variable - PYTHONVERSION - Version of Python for which PySide6 is built
 if [[ -z "${PYTHONVERSION}" ]]; then
@@ -128,6 +119,17 @@ for pythonexe in "${PYTHONEXE}" "${PYTHONDEXE}"; do
         exit 1
     fi
 done
+
+# Environment Variable - PYSIDEVERSION - Version of PySide6 built
+if [[ -z "${PYSIDEVERSION}" || "${PYSIDEVERSION^^}" == "PREFLIGHT" ]]; then
+    # Figure out PYSIDEVERSION from the codebase.
+    export PYSIDEVERSION=$($PYTHONEXE $SCRIPT_DIR/fetch-qt-version.py)
+fi
+if [[ ! ${PYSIDEVERSION} =~ ^[0-9]{1,2}\.[0-9]{1,3}\.[0-9]{1,3}(\.[1-9])?$ ]]; then
+    echo "PYSIDEVERSION is invalid. It should be a version number. Example: export PYSIDEVERSION=6.2.3"
+    exit 1
+fi
+echo "PYSIDEVERSION=${PYSIDEVERSION}"
 set -u
 
 # Python 2.7.X and 3.7.X artifacts had files with the pymalloc suffix
