@@ -206,6 +206,12 @@ do
         export EXTRA_SETUP_PY_OPTS=""
     fi
 
+    if [[ $isMacOS -eq 1 ]]; then
+        # No need to set --macos-deployment-target=11.0, as Qt was already built
+        # with 11 as minimum deployment target
+        export EXTRA_SETUP_PY_OPTS="--macos-arch='x86_64;arm64'"
+    fi
+
     # By default, the pyside6-uic and pyside6-rcc wrappers are installed in the Python directory during the install step.
     # Using the --prefix option, we specify a different location where to output the files, which makes it easier to copy
     # the wrappers in the /bin folder when packaging.
