@@ -7,7 +7,7 @@ properties([
     string(name: 'COMMIT', defaultValue: "", description: 'Commit ID to build from (optional)'),
     string(name: 'QtVersion', defaultValue: 'latest'),
     string(name: 'QtBuildID', defaultValue: 'latest', description: 'Qt Build ID on Artifactory (format: AAAA-MM-DD-hh-mm)'),
-    choice(name: 'PythonVersion', choices:['3.9.7'], description: 'Python version (format: A.B.C)'),
+    choice(name: 'PythonVersion', choices:['3.10.6', '3.9.7'], description: 'Python version (format: A.B.C)'),
   ])
 ])
 
@@ -45,14 +45,10 @@ pythonVersionB = pythonVersionArray[1]
 pythonVersionAdotB = "${pythonVersionA}.${pythonVersionB}"
 
 // Email Notifications - List of Recipients
-default_Recipients = ["Keith.Kyzivat@autodesk.com"]
-DEVTeam_Recipients = []
-ENGOPSTeam_Recipients = []
-QtTeam_Recipients = []
-//default_Recipients = ["Bang.Nguyen@autodesk.com"]
-//DEVTeam_Recipients = ["marc-andre.brodeur@autodesk.com"]
-//ENGOPSTeam_Recipients = ["Bang.Nguyen@autodesk.com", "vishal.dalal@autodesk.com"]
-//QtTeam_Recipients = ["Daniela.Stajic@autodesk.com", "Wayne.Arnold@autodesk.com", "Richard.Langlois@autodesk.com", "william.smith@autodesk.com", "Bang.Nguyen@autodesk.com"]
+default_Recipients = ["Bang.Nguyen@autodesk.com"]
+DEVTeam_Recipients = ["marc-andre.brodeur@autodesk.com"]
+ENGOPSTeam_Recipients = ["Bang.Nguyen@autodesk.com", "vishal.dalal@autodesk.com"]
+QtTeam_Recipients = ["Daniela.Stajic@autodesk.com", "Wayne.Arnold@autodesk.com", "Richard.Langlois@autodesk.com", "william.smith@autodesk.com", "Bang.Nguyen@autodesk.com"]
 
 buildStages = [
     "Initialize":[name:'Initialize', emailTO: (ENGOPSTeam_Recipients + default_Recipients).join(", ")],
@@ -67,6 +63,7 @@ buildStages = [
 buildConfigs = [
     "pyside_local": "local",
     "pyside_Lnx": "CentOS 7.6",
+    "pyside_Rhel8": "Rhel 8.6",
     "pyside_Mac": "Mojave 10.14",
     "pyside_Win": "Windows 10"
 ]
@@ -97,7 +94,13 @@ def checkOS() {
             return "Mac"
         }
         else {
-            return "Linux"
+            def distro = sh script: "hostnamectl | awk '/Operating System/ { print \$3 }'", returnStdout: true
+            print "distro: ${distro}"
+            if (distro.contains("CentOS")) {
+               return "Linux"
+            } else {
+               return "RedHat"
+            }
         }
     }
     else {
@@ -223,39 +226,39 @@ def getQtVersion(String qtVer, String artifactoryURL) {
     def qtVersionList = info.children
     def qtVersionURL
     def qtVersionFound = ""
-    def curVersion
 
-    for (item in qtVersionList) {
-        if ( item.folder ) {
-            curVersion = item.uri.substring(1) // Remove leading forward slash
-            qtVersionURL = artifactoryURL + item.uri + "/Maya"
+    def versions = qtVersionList.findAll({ item -> item.folder }).collect { item -> item.uri.substring(1) }
+    def command = """sort -r -V - << EOF
+${versions.join("\n")}
+EOF"""
+    def sortedVersions = sh (
+        script: command,
+        returnStdout: true
+    ).trim()
+    versions = sortedVersions.split()
+
+    print("sorted Qt versions: " + versions)
+
+    for (version in versions) {
+        qtVersionURL = artifactoryURL + "/" + version + "/Maya"
+        if ((qtVer == 'latest' && qtVersionFound == "") || qtVer == version) {
             response = sh (
                 script: "curl -s -X GET ${qtVersionURL}",
                 returnStdout: true
             ).trim()
-            println "qtVersionFound: ${qtVersionFound}"
             info = readJSON text: response
-            if (info.children) {
-                def buildIDList = info.children
-                if (qtVer == 'latest') {
-                    if (curVersion > qtVersionFound && buildIDList.size() > 0) {
-                        buildIDList.each {
-                            if (it.folder ) {
-                                qtVersionFound = curVersion
-                            }
-                        }
-                    }
-                } else {
-                    if (curVersion == qtVer && buildIDList.size() > 0) {
-                        buildIDList.each {
-                            if (it.folder ) {
-                                qtVersionFound = curVersion
-                            }
-                        }
+            def buildIDList = info.children
+            if (buildIDList && buildIDList.size() > 0) {
+                for (buildIDDir in buildIDList) {
+                    if (buildIDDir.folder) {
+                        qtVersionFound = version
                         break
                     }
                 }
             }
+        }
+        if (qtVersionFound) {
+            break
         }
     }
     return qtVersionFound
@@ -481,51 +484,54 @@ def getQtArtifacts(String buildID, String artifactoryURL) {
         def info = readJSON text: response
         def repo = info.repo
         def path = info.path
-        def buildIDList = info.children
-        def buildIDURL
-        def buildMatched = ""
+        def dateFolders = info.children.findAll({ item -> item.folder }).collect { item -> item.uri.substring(1) }
+        // Sort numerically since they are in YYYY-mm-dd-HH-MM format and will sort correctly by numeric sort.
+        def command = """sort -r -n - << EOF
+${dateFolders.join("\n")}
+EOF"""
+        def sortedDateFolders = sh (
+            script: command,
+            returnStdout: true
+        ).trim()
+        dateFolders = sortedDateFolders.split()
+        println "sorted dateFolders: ${dateFolders}"
+
         def qtArtifactWin = ""
         def qtArtifactLnx = ""
         def qtArtifactMac = ""
-        for (item in buildIDList) {
-            if ( item.folder ) {
-                buildURL = artifactoryURL + item.uri
-                response = sh (
-                    script: "curl -s -X GET ${buildURL}",
-                    returnStdout: true
-                ).trim()
-                info = readJSON text: response
-                def artifactList = info.children
-                if (buildID == 'latest') {
-                    if (item.uri > buildMatched && artifactList.size() == 4) { //Expect to have 4 zips in each build 2 Windows, 1 Linux and 1 Mac
-                        artifactList.each {
-                            if (it.uri.contains('Maya-Qt-Windows')) {
-                                qtArtifactWin = info.repo + info.path + it.uri
-                            } else if (it.uri.contains('Maya-Qt-Linux')) {
-                                qtArtifactLnx = info.repo + info.path + it.uri
-                            } else if (it.uri.contains('Maya-Qt-Mac')) {
-                                qtArtifactMac = info.repo + info.path + it.uri
-                            }
-                        }
-                    }
-                } else {
-                    if (item.uri.contains(buildID) && artifactList.size() == 4) { //Expect to have 4 zips in each build 2 Windows, 1 Linux and 1 Mac
-                        artifactList.each {
-                            if (it.uri.contains('Maya-Qt-Windows')) {
-                                qtArtifactWin = info.repo + info.path + it.uri
-                            } else if (it.uri.contains('Maya-Qt-Linux')) {
-                                qtArtifactLnx = info.repo + info.path + it.uri
-                            } else if (it.uri.contains('Maya-Qt-Mac')) {
-                                qtArtifactMac = info.repo + info.path + it.uri
-                            }
-                        }
-                        break
+        def qtArtifactRhel8 = ""
+        for (dateFolder in dateFolders) {
+            if (buildID != 'latest' && !dateFolder.contains(buildID))
+                continue
+            buildURL = artifactoryURL + "/" + dateFolder
+            response = sh (
+                script: "curl -s -X GET ${buildURL}",
+                returnStdout: true
+            ).trim()
+            info = readJSON text: response
+            def artifactList = info.children
+
+            // There must be exactly 5 entries in the folder (2 Windows, 1 Linux, 1 Rhel8 and 1 Mac)
+            if (artifactList.size() != 5)
+                continue // Try the next one
+
+            if (buildID == 'latest' || dateFolder.contains(buildID)) {
+                artifactList.each {
+                    if (it.uri.contains('Maya-Qt-Windows')) {
+                        qtArtifactWin = info.repo + info.path + it.uri
+                    } else if (it.uri.contains('Maya-Qt-Linux')) {
+                        qtArtifactLnx = info.repo + info.path + it.uri
+                    } else if (it.uri.contains('Maya-Qt-Rhel8')) {
+                        qtArtifactRhel8 = info.repo + info.path + it.uri
+                    } else if (it.uri.contains('Maya-Qt-Mac')) {
+                        qtArtifactMac = info.repo + info.path + it.uri
                     }
                 }
+                break
             }
         }
 
-        return [qtArtifactWin, qtArtifactLnx, qtArtifactMac]
+        return [qtArtifactWin, qtArtifactLnx, qtArtifactRhel8, qtArtifactMac]
 }
 
 //-----------------------------------------------------------------------------
@@ -589,17 +595,12 @@ def Initialize(String buildConfig) {
         }
 
         // Define where to publish PySide6 on Artifactory
-        artifactoryTarget = "oss-stg-generic/pyside6/${branch}/Maya/Qt${qtVersion}/Python${pythonVersionA}/${buildTime}/"
-        if (pythonVersionA == "3") {
-            artifactoryTarget = "oss-stg-generic/pyside6/${branch}/Maya/Qt${qtVersion}/Python${pythonVersionAdotB}/${buildTime}/"
-        }
+        artifactoryTarget = "oss-stg-generic/pyside6/${branch}/Maya/Qt${qtVersion}/Python${pythonVersionAdotB}/${buildTime}/"
 
-        (QtArtifact_Win, QtArtifact_Lnx, QtArtifact_Mac) = getQtArtifacts(params.QtBuildID, "${artifactoryRoot}api/storage/oss-stg-generic/Qt/${qtVersion}/Maya")
-        // Temp - using manual 6.2.3 Windows Qt build
-        QtArtifact_Win = "team-maya-generic/Qt/6.2.3/Maya/2022-03-01-MANUAL/202203012129-8265d1ab-Maya-Qt-Windows.zip"
-        println("Win: ${QtArtifact_Win}, Linux: ${QtArtifact_Lnx}, Mac: ${QtArtifact_Mac}")
+        (QtArtifact_Win, QtArtifact_Lnx, QtArtifact_Rhel8, QtArtifact_Mac) = getQtArtifacts(params.QtBuildID, "${artifactoryRoot}api/storage/oss-stg-generic/Qt/${qtVersion}/Maya")
+        println("Win: ${QtArtifact_Win}, Linux: ${QtArtifact_Lnx}, Rhel8: ${QtArtifact_Rhel8}, Mac: ${QtArtifact_Mac}")
 
-        if (QtArtifact_Win == "" || QtArtifact_Lnx == "" || QtArtifact_Mac == "") {
+        if (QtArtifact_Win == "" || QtArtifact_Lnx == "" || QtArtifact_Rhel8 == "" || QtArtifact_Mac == "") {
             error("**** Error:  Unable to find specified Qt artifact ***** ")
         }
 
@@ -615,11 +616,7 @@ def Initialize(String buildConfig) {
 def Setup(String buildConfig) {
     def stage = "Setup"
     env.PYSIDEVERSION = "${pysideVersion}"
-    if (!isUnix()){
-        qtVersion = "6.2.3"
-    }
     env.QTVERSION = "${qtVersion}"
-
     env.PYTHONVERSION = "${params.PythonVersion}"
 
     try {
@@ -635,7 +632,7 @@ def Setup(String buildConfig) {
             dir ('out') {
                 deleteDir()
             }
-            dir ("${downloadDir}") {
+            dir ('external_dependencies') {
                 deleteDir()
             }
         }
@@ -644,17 +641,39 @@ def Setup(String buildConfig) {
 
         if (checkOS() == "Mac") {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Mac.tar.gz"
-            artifacts[buildConfig]  = ["${QtArtifact_Mac}", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-mac.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-macos-universal.tar.gz"]
-            // Note that MacOS does not need to download Python3 - it is already installed.
-            // Using a version of Python3 and running it with an executable path gives a 'Library not found' error (also seen on Maya build machines)
+            artifacts[buildConfig]  = ["${QtArtifact_Mac}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-macos-universal.tar.gz"]
+            if (params.PythonVersion == '3.10.6') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-mac-universal2-expandedframework-MANUAL-2022_09_22_1000.tar.gz"
+            } else if (params.PythonVersion == '3.9.7') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-mac-002-universal2-expandedframework.tar.gz"
+            }
         }
         else if (checkOS() == "Linux") {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Linux.tar.gz"
-            artifacts[buildConfig]  = ["${QtArtifact_Lnx}", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz", "team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-2.tar.gz"]
+            artifacts[buildConfig]  = ["${QtArtifact_Lnx}", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz"]
+            if (params.PythonVersion == '3.10.6') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-9.3.1-openssl-1.1.1k_MANUAL.zip"
+            } else if (params.PythonVersion == '3.9.7') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-2.tar.gz"
+            }
+        }
+        else if (checkOS() == "RedHat") {
+            PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Rhel8.tar.gz"
+            artifacts[buildConfig]  = ["${QtArtifact_Rhel8}", "team-maya-generic/libclang/release_70-based/libclang-release_70-based-linux-Rhel7.2-gcc5.3-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.13.3-Linux-x86_64.tar.gz"]
+            if (params.PythonVersion == '3.10.6') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-9.3.1-openssl-1.1.1k_MANUAL.zip"
+            } else if (params.PythonVersion == '3.9.7') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-2.tar.gz"
+            }
         }
         else {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Windows.zip"
-            artifacts[buildConfig]  = ["${QtArtifact_Win}", "team-maya-generic/libclang/release_100-based/libclang-release_100-based-windows-vs2019_64.zip", "team-maya-generic/openssl/1.1.1g/openssl-1.1.1g-win-vc140.zip", "team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip", "team-maya-generic/python/3.9.7/cpython-3.9.7-win-001.zip"]
+            artifacts[buildConfig]  = ["${QtArtifact_Win}", "team-maya-generic/libclang/release_100-based/libclang-release_100-based-windows-vs2019_64.zip", "team-maya-generic/openssl/1.1.1g/openssl-1.1.1g-win-vc140.zip", "team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip", "team-shotgun-view-master-generic/jom/jom_1_1_3.zip"]
+            if (params.PythonVersion == '3.10.6') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-win-MANUAL-2022_08_31_1430.zip"
+            } else if (params.PythonVersion == '3.9.7') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-win-001.zip"
+            }
         }
         print "$buildConfig artifacts: ${artifacts[buildConfig]}"
 
@@ -715,17 +734,26 @@ def Build(String workDir, String buildConfig) {
 
     try {
         dir (srcDir) {
+            def cpythonDir = "${workDir}/${downloadDir}/cpython"
             if (checkOS() == "Mac") {
                 if (pythonVersionAdotB == '3.9') {
                     runOSCommand('brew link --overwrite --force python@3.9')
                 }
+                env.PYTHONEXE = "${cpythonDir}/${params.PythonVersion}/RelWithdebInfo/bin/python" // Note lowercase d debInfo
+                runOSCommand("find ${cpythonDir} -not -perm -200 -exec chmod u+w {} \\;")
+                runOSCommand("xattr -r -d com.apple.quarantine ${cpythonDir}") // Remove quarantine so the interpreter will actually run.
                 runOSCommand('xcodebuild -version && xcodebuild -showsdks')
-                runOSCommand("""PYTHONVERSION=${params.PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_build_pyside6_osx.sh ${workDir}""")
+                runOSCommand("""PYTHONEXE=${env.PYTHONEXE} PYTHONVERSION=${params.PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_build_pyside6_osx.sh ${workDir}""")
             }
-            else if (checkOS() == "Linux") {
-                runOSCommand("scl enable devtoolset-9 'PYTHONVERSION=${params.PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} bash $scriptDir/adsk_maya_build_pyside6_lnx.sh ${workDir}'")
+            else if (checkOS() == "Linux" || checkOS() == "RedHat") {
+                def gccToolset = (checkOS() == "Linux") ? "devtoolset-9" : "gcc-toolset-11"
+                env.PYTHONEXE = "${cpythonDir}/${params.PythonVersion}/RelWithDebInfo/bin/python${pythonVersionAdotB}"
+                env.PYTHONDEXE = "${cpythonDir}/${params.PythonVersion}/Debug/bin/python${pythonVersionAdotB}"
+                runOSCommand("scl enable ${gccToolset} 'PYTHONEXE=${env.PYTHONEXE} PYTHONDEXE=${env.PYTHONDEXE} PYTHONVERSION=${params.PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} bash $scriptDir/adsk_maya_build_pyside6_lnx.sh ${workDir}'")
             }
             else {
+                env.PYTHONEXE = "${cpythonDir}/${params.PythonVersion}/RelWithdebInfo/python.exe"
+                env.PYTHONDEXE = "${cpythonDir}/${params.PythonVersion}/Debug/python_d.exe"
                 runOSCommand("""$scriptDir\\adsk_maya_build_pyside6_win.bat ${workDir}""")
             }
         }
@@ -746,7 +774,7 @@ def Package(String workDir, String buildConfig) {
             if (checkOS() == "Mac") {
                 runOSCommand("""PYTHONVERSION=${params.PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_package_pyside6_osx.sh ${workDir}""")
             }
-            else if (checkOS() == "Linux") {
+            else if (checkOS() == "Linux" || checkOS() == "RedHat") {
                 runOSCommand("""PYTHONVERSION=${params.PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_package_pyside6_lnx.sh ${workDir}""")
             }
             else {
@@ -791,6 +819,13 @@ def Publish(String workDir, String buildConfig) {
             else if (checkOS() == "Linux") {
                 pattern = "out/*.tar.gz"
                 props = "QtArtifact=${QtArtifact_Lnx};commit=${gitCommit};OS=Rhel7.6;Compiler=gcc9.3.1;libclang=release_70-based"
+                if (artifactProps != "") {
+                    props = String.format("%s;%s", props, artifactProps)
+                }
+            }
+            else if (checkOS() == "RedHat") {
+                pattern = "out/*.tar.gz"
+                props = "QtArtifact=${QtArtifact_Rhel8};commit=${gitCommit};OS=Rhel8.6;Compiler=gcc11.2.1;libclang=release_70-based"
                 if (artifactProps != "") {
                     props = String.format("%s;%s", props, artifactProps)
                 }
@@ -856,18 +891,12 @@ def Finalize(String buildConfig) {
 
 //-----------------------------------------------------------------------------
 
-// By default, we use the Mac Jenkins node with Python 3.7 to build PySide6
-// If we build for Python 3.9, we use the other Mac Jenkins node with Python 3.9 installed
-def macNode = "OSS-Maya-OSX10.14.1-Xcode10.1"
-if (pythonVersionAdotB == "3.9") {
-    macNode = "OSS-Maya-OSX10.14.1-Xcode10.1_02"
-}
-
 // Define which node to use for each platform
-def generateSteps = {pyside_lnx, pyside_mac, pyside_win ->
+def generateSteps = {pyside_lnx, pyside_rhel8, pyside_mac, pyside_win ->
     return [
         "pyside_Lnx" : { node("OSS-Maya-CentOS76_02") { pyside_lnx() }},
-        "pyside_Mac" : { node(macNode) { pyside_mac() }},
+        "pyside_Rhel8" : { node("qt-2024-linux-rhel8-nogpu-pool") { pyside_rhel8() }},
+        "pyside_Mac" : { node("OSS-Maya-OSX12.4.0-Xcode13.3") { pyside_mac() }},
         "pyside_Win" : { node("OSS-Maya_2022_Win10-vs2019_02") { pyside_win() }}
         ]
 }
@@ -902,6 +931,9 @@ try {
                 Setup('pyside_Lnx')
             },
             {
+                Setup('pyside_Rhel8')
+            },
+            {
                 Setup('pyside_Mac')
             },
             {
@@ -915,6 +947,9 @@ try {
         parallel generateSteps(
             {
                 Sync(workspaceRoot['pyside_Lnx'], 'pyside_Lnx')
+            },
+            {
+                Sync(workspaceRoot['pyside_Rhel8'], 'pyside_Rhel8')
             },
             {
                 Sync(workspaceRoot['pyside_Mac'], 'pyside_Mac')
@@ -932,6 +967,9 @@ try {
                 Build(workspaceRoot['pyside_Lnx'], 'pyside_Lnx')
             },
             {
+                Build(workspaceRoot['pyside_Rhel8'], 'pyside_Rhel8')
+            },
+            {
                 Build(workspaceRoot['pyside_Mac'], 'pyside_Mac')
             },
             {
@@ -947,6 +985,9 @@ try {
                 Package(workspaceRoot['pyside_Lnx'], 'pyside_Lnx')
             },
             {
+                Package(workspaceRoot['pyside_Rhel8'], 'pyside_Rhel8')
+            },
+            {
                 Package(workspaceRoot['pyside_Mac'], 'pyside_Mac')
             },
             {
@@ -960,6 +1001,9 @@ try {
         parallel generateSteps(
             {
                 Publish(workspaceRoot['pyside_Lnx'], 'pyside_Lnx')
+            },
+            {
+                Publish(workspaceRoot['pyside_Rhel8'], 'pyside_Rhel8')
             },
             {
                 Publish(workspaceRoot['pyside_Mac'], 'pyside_Mac')
