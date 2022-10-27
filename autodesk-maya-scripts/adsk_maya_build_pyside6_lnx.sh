@@ -227,7 +227,7 @@ do
     $PYTHON_EXE -m pip install packaging
 
     # Build PySide6
-    $PYTHON_EXE setup.py install --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
+    $PYTHON_EXE setup.py install --qtpaths=$QTPATH/bin/qtpaths --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
     if [ $? -eq 0 ]; then
         echo "==== Success ==== $BUILDTYPE_STR Build"
     else
@@ -235,7 +235,7 @@ do
         exit 1
     fi
     echo -n "End ${BUILDTYPE} python setup.py install timestamp: "; date
-    $PYTHON_EXE setup.py bdist_wheel --qmake=$QTPATH/bin/qmake --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
+    $PYTHON_EXE setup.py bdist_wheel --qtpaths=$QTPATH/bin/qtpaths --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
     if [ $? -eq 0 ]; then
         echo "==== Success ==== $BUILDTYPE_STR Build Wheel"
     else

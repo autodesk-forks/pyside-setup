@@ -210,8 +210,8 @@ REM Ensure that pip and its required modules are installed for Python 3 (debug v
 
 REM Note: the `slots` keyword is already properly defined in the debug version
 
-%PYTHON_D_EXE% setup.py install --debug --qmake=%QTPATH%\bin\qmake.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_DEBUG% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
-%PYTHON_D_EXE% setup.py bdist_wheel --debug --qmake=%QTPATH%\bin\qmake.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_DEBUG% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
+%PYTHON_D_EXE% setup.py install --debug --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_DEBUG% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
+%PYTHON_D_EXE% setup.py bdist_wheel --debug --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_DEBUG% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
 
 REM Unpack the wheels
 set WHEEL_SUFFIX=%PYSIDEVERSION%-%QTVERSION%-cp%PYTHONVERSION_AB%-cp%PYTHONVERSION_AB%d%PYMALLOC_SUFFIX%-win_amd64
