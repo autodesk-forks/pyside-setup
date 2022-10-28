@@ -53,6 +53,27 @@ if(NOT PYTHON_EXTENSION_SUFFIX)
     get_python_extension_suffix()
 endif()
 
+# Detect if the python libs were compiled in debug mode
+# On Windows and Linux distros there is no standard way to check that.
+if(WIN32)
+    set(is_python_debug_cmd "if True:
+            from importlib import machinery
+            _d_in_extension_suffixes = '_d.pyd' in machinery.EXTENSION_SUFFIXES
+            print(_d_in_extension_suffixes)
+            ")
+else()
+    set(is_python_debug_cmd "if True:
+            import sys
+            import sysconfig
+            config_py_debug = sysconfig.get_config_var('Py_DEBUG')
+            print(bool(config_py_debug))
+            ")
+endif()
+execute_process(
+    COMMAND ${PYTHON_EXECUTABLE} -c ${is_python_debug_cmd}
+    OUTPUT_VARIABLE PYTHON_WITH_DEBUG
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 option(FORCE_LIMITED_API "Enable the limited API." "yes")
 set(PYTHON_LIMITED_API 0)
 
@@ -114,18 +135,6 @@ endif()
 if(SANITIZE_ADDRESS AND NOT MSVC)
     setup_sanitize_address()
 endif()
-
-# Detect if the python libs were compiled in debug mode
-# On Linux distros there is no standard way to check that.
-execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} -c "if True:
-        import sys
-        import sysconfig
-        config_py_debug = sysconfig.get_config_var('Py_DEBUG')
-        print(bool(config_py_debug))
-        "
-    OUTPUT_VARIABLE PYTHON_WITH_DEBUG
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # Detect if python interpeter was compiled with COUNT_ALLOCS define
 # Linux distros are inconsistent in setting the sysconfig.get_config_var('COUNT_ALLOCS') value
