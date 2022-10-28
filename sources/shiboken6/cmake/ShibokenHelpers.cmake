@@ -263,6 +263,8 @@ macro(shiboken_check_if_limited_api)
                 "
             OUTPUT_VARIABLE PYTHON_LIMITED_LIBRARIES
             OUTPUT_STRIP_TRAILING_WHITESPACE)
+        message(STATUS "PYTHON_WITH_DEBUG:      '${PYTHON_WITH_DEBUG}'")
+        message(STATUS "PYTHON_LIMITED_LIBRARIES: '${PYTHON_LIMITED_LIBRARIES}'")
     endif()
 
     if(FORCE_LIMITED_API)

@@ -164,8 +164,15 @@ REM Create qt.conf file
 echo [Paths] > %QTPATH%\bin\qt.conf
 echo Prefix=.. >> %QTPATH%\bin\qt.conf
 
+call :build_debug
+if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+call :build_release
+if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+goto END
 
 REM Build PySide6 release version
+:build_release
+echo "Building release using %PYTHON_EXE%"
 %PYTHON_EXE% -V
 
 set LIB=%ORIGLIB%;%PYTHON_DIR%\RelWithDebInfo\libs
@@ -194,9 +201,11 @@ set SHIBOKEN6_GEN_WHEEL=shiboken6_generator-%WHEEL_SUFFIX%.whl
 %WHEEL_EXE% unpack %DIST_DIR_RELWITHDEBINFO%\%PYSIDE6_WHEEL% --dest=%DIST_DIR_RELWITHDEBINFO%\
 %WHEEL_EXE% unpack %DIST_DIR_RELWITHDEBINFO%\%SHIBOKEN6_WHEEL% --dest=%DIST_DIR_RELWITHDEBINFO%\
 %WHEEL_EXE% unpack %DIST_DIR_RELWITHDEBINFO%\%SHIBOKEN6_GEN_WHEEL% --dest=%DIST_DIR_RELWITHDEBINFO%\
-
+goto :EOF
 
 REM Build PySide6 debug version
+:build_debug
+echo "Building debug using %PYTHON_D_EXE%"
 %PYTHON_D_EXE% -V
 
 set LIB=%ORIGLIB%;%PYTHON_DIR%\Debug\libs
@@ -222,5 +231,7 @@ set SHIBOKEN6_GEN_WHEEL=shiboken6_generator-%WHEEL_SUFFIX%.whl
 %WHEEL_EXE% unpack %DIST_DIR_DEBUG%\%PYSIDE6_WHEEL% --dest=%DIST_DIR_DEBUG%\
 %WHEEL_EXE% unpack %DIST_DIR_DEBUG%\%SHIBOKEN6_WHEEL% --dest=%DIST_DIR_DEBUG%\
 %WHEEL_EXE% unpack %DIST_DIR_DEBUG%\%SHIBOKEN6_GEN_WHEEL% --dest=%DIST_DIR_DEBUG%\
+goto :EOF
 
+:END
 echo ==== Success ====
