@@ -225,24 +225,34 @@ do
     mkdir -p "$DIST_DIR_BUILDTYPE"
 
     # Ensure that pip and its required modules are installed for Python 3 (release version)
+    set -x
     $PYTHON_EXE -m ensurepip
     $PYTHON_EXE -m pip install --upgrade pip
+    set +x
 
     # Now install all required Python modules for building from pyside-setup's requirements.txt file.
+    set -x
     $PYTHON_EXE -m pip install -r requirements.txt
     $PYTHON_EXE -m pip install packaging
+    set +x
 
     # Build PySide6
+    set -x
     $PYTHON_EXE setup.py install --qtpaths=$QTPATH/bin/qtpaths --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
-    if [ $? -eq 0 ]; then
+    export setup_ret=$?
+    set +x
+    if [ $setup_ret -eq 0 ]; then
         echo "==== Success ==== $BUILDTYPE_STR Build"
     else
         echo >&2 "**** Failed to build **** $BUILDTYPE_STR Build"
         exit 1
     fi
     echo -n "End ${BUILDTYPE} python setup.py install timestamp: "; date
+    set -x
     $PYTHON_EXE setup.py bdist_wheel --qtpaths=$QTPATH/bin/qtpaths --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
-    if [ $? -eq 0 ]; then
+    export setup_ret=$?
+    set +x
+    if [ $setup_ret -eq 0 ]; then
         echo "==== Success ==== $BUILDTYPE_STR Build Wheel"
     else
         echo >&2 "**** Failed to build **** $BUILDTYPE_STR Build Wheel"
@@ -262,9 +272,11 @@ do
     export SHIBOKEN6_WHEEL=shiboken6-${WHEEL_SUFFIX}.whl
     export SHIBOKEN6_GEN_WHEEL=shiboken6_generator-${WHEEL_SUFFIX}.whl
 
+    set -x
     $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${PYSIDE6_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
     $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN6_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
     $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN6_GEN_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+    set +x
     echo -n "End ${BUILDTYPE} wheel unpack timestamp: "; date
 done
 echo -n "End timestamp: "; date

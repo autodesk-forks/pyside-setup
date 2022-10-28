@@ -172,17 +172,21 @@ set LIB=%ORIGLIB%;%PYTHON_DIR%\RelWithDebInfo\libs
 echo LIB=%LIB%
 
 REM Ensure that pip and its required modules are installed for Python 3 (release version)
+@echo on
 %PYTHON_EXE% -m ensurepip
 %PYTHON_EXE% -m pip install pip
 %PYTHON_EXE% -m pip install setuptools
 %PYTHON_EXE% -m pip install wheel==0.34.1
 %PYTHON_EXE% -m pip install packaging
+@echo off
 
 REM Before setting up, make sure that `slots` keyword is properly defined
 sed -i -e 's/\(PyType_Slot\ \*slots\)_/\1/' %PYTHON_DIR%/RelWithDebInfo/include/object.h
 
+@echo on
 %PYTHON_EXE% setup.py install --relwithdebinfo --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside6 Release ****" && exit /b 1
 %PYTHON_EXE% setup.py bdist_wheel --relwithdebinfo --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside6 bdist_wheel Release ****" && exit /b 1
+@echo off
 
 REM Unpack the wheels
 set WHEEL_SUFFIX=%PYSIDEVERSION%-%QTVERSION%-cp%PYTHONVERSION_AB%-cp%PYTHONVERSION_AB%%PYMALLOC_SUFFIX%-win_amd64
@@ -191,9 +195,12 @@ set PYSIDE6_WHEEL=PySide6-%WHEEL_SUFFIX%.whl
 set SHIBOKEN6_WHEEL=shiboken6-%WHEEL_SUFFIX%.whl
 set SHIBOKEN6_GEN_WHEEL=shiboken6_generator-%WHEEL_SUFFIX%.whl
 
+set WHEEL_EXE=%PYTHON_DIR%\RelWithDebInfo\Scripts\wheel.exe
+@echo on
 %WHEEL_EXE% unpack %DIST_DIR_RELWITHDEBINFO%\%PYSIDE6_WHEEL% --dest=%DIST_DIR_RELWITHDEBINFO%\
 %WHEEL_EXE% unpack %DIST_DIR_RELWITHDEBINFO%\%SHIBOKEN6_WHEEL% --dest=%DIST_DIR_RELWITHDEBINFO%\
 %WHEEL_EXE% unpack %DIST_DIR_RELWITHDEBINFO%\%SHIBOKEN6_GEN_WHEEL% --dest=%DIST_DIR_RELWITHDEBINFO%\
+@echo off
 
 
 REM Build PySide6 debug version
@@ -202,15 +209,19 @@ REM Build PySide6 debug version
 set LIB=%ORIGLIB%;%PYTHON_DIR%\Debug\libs
 
 REM Ensure that pip and its required modules are installed for Python 3 (debug version)
+@echo on
 %PYTHON_D_EXE% -m ensurepip
 %PYTHON_D_EXE% -m pip install --upgrade pip
 %PYTHON_D_EXE% -m pip install -r requirements.txt
 %PYTHON_D_EXE% -m pip install packaging
+@echo off
 
 REM Note: the `slots` keyword is already properly defined in the debug version
 
+@echo on
 %PYTHON_D_EXE% setup.py install --debug --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_DEBUG% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
 %PYTHON_D_EXE% setup.py bdist_wheel --debug --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_DEBUG% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
+@echo off
 
 REM Unpack the wheels
 set WHEEL_SUFFIX=%PYSIDEVERSION%-%QTVERSION%-cp%PYTHONVERSION_AB%-cp%PYTHONVERSION_AB%d%PYMALLOC_SUFFIX%-win_amd64
@@ -219,8 +230,11 @@ set PYSIDE6_WHEEL=PySide6-%WHEEL_SUFFIX%.whl
 set SHIBOKEN6_WHEEL=shiboken6-%WHEEL_SUFFIX%.whl
 set SHIBOKEN6_GEN_WHEEL=shiboken6_generator-%WHEEL_SUFFIX%.whl
 
+set WHEEL_EXE=%PYTHON_DIR%\Debug\Scripts\wheel.exe
+@echo on
 %WHEEL_EXE% unpack %DIST_DIR_DEBUG%\%PYSIDE6_WHEEL% --dest=%DIST_DIR_DEBUG%\
 %WHEEL_EXE% unpack %DIST_DIR_DEBUG%\%SHIBOKEN6_WHEEL% --dest=%DIST_DIR_DEBUG%\
 %WHEEL_EXE% unpack %DIST_DIR_DEBUG%\%SHIBOKEN6_GEN_WHEEL% --dest=%DIST_DIR_DEBUG%\
+@echo off
 
 echo ==== Success ====
