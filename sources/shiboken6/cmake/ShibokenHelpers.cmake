@@ -243,9 +243,9 @@ macro(shiboken_check_if_limited_api)
         #    optimized;C:/Python36/libs/python36.lib;debug;C:/Python36/libs/python36_d.lib
         # On other platforms, this result is not used at all.
         if(PYTHON_WITH_DEBUG)
-            set(py3_lib_suffix "_d")
+            set(is_py_debug_str "True")
         else()
-            set(py3_lib_suffix "")
+            set(is_py_debug_str "False")
         endif()
         execute_process(
             COMMAND ${PYTHON_EXECUTABLE} -c "if True:
@@ -253,8 +253,12 @@ macro(shiboken_check_if_limited_api)
                 for lib in '${PYTHON_LIBRARIES}'.split(';'):
                     if '/' in lib and os.path.isfile(lib):
                         prefix, py = lib.rsplit('/', 1)
-                        if py.startswith('python3'):
-                            print(prefix + '/python3${py3_lib_suffix}.lib')
+                        if ${is_py_debug_str}:
+                            if py.startswith('python3') and lib.endswith('_d.lib'):
+                                print(prefix + '/python3_d.lib')
+                                break
+                        elif py.startswith('python3'):
+                            print(prefix + '/python3.lib')
                             break
                 "
             OUTPUT_VARIABLE PYTHON_LIMITED_LIBRARIES
