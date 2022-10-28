@@ -242,6 +242,11 @@ macro(shiboken_check_if_limited_api)
         # On Windows, PYTHON_LIBRARIES can be a list. Example:
         #    optimized;C:/Python36/libs/python36.lib;debug;C:/Python36/libs/python36_d.lib
         # On other platforms, this result is not used at all.
+        if(PYTHON_WITH_DEBUG)
+            set(py3_lib_suffix "_d")
+        else()
+            set(py3_lib_suffix "")
+        endif()
         execute_process(
             COMMAND ${PYTHON_EXECUTABLE} -c "if True:
                 import os
@@ -249,7 +254,7 @@ macro(shiboken_check_if_limited_api)
                     if '/' in lib and os.path.isfile(lib):
                         prefix, py = lib.rsplit('/', 1)
                         if py.startswith('python3'):
-                            print(prefix + '/python3.lib')
+                            print(prefix + '/python3${py3_lib_suffix}.lib')
                             break
                 "
             OUTPUT_VARIABLE PYTHON_LIMITED_LIBRARIES
