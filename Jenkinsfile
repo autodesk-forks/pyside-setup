@@ -702,7 +702,11 @@ def Setup(String buildConfig) {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Windows.zip"
             artifacts[buildConfig]  = ["${QtArtifact_Win}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-windows-vs2019_64.zip", "team-maya-generic/openssl/1.1.1g/openssl-1.1.1g-win-vc140.zip", "team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip", "team-shotgun-view-master-generic/jom/jom_1_1_3.zip"]
             if (params.PythonVersion == '3.10.6') {
-                artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-win-MANUAL-2022_08_31_1430.zip"
+                //artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-win-MANUAL-2022_08_31_1430.zip"
+                // Temporarily build just 3.9.7 under windows - to see if the
+                // faulty python limited api library detection logic is caused
+                // by a newer python.
+                artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-win-001.zip"
             } else if (params.PythonVersion == '3.9.7') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-win-001.zip"
             }
