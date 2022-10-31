@@ -37,12 +37,8 @@ product = "pyside"
 gitBranch = env.BRANCH_NAME  // Actual branch name in GIT repo
 pysideVersion = "" // This is initialized in Initialize.
 
-// PythonVersion: Extract MAJOR(A), MINOR(B), and REVISION(C)
-pythonVersion = params.PythonVersion
-pythonVersionArray = params.PythonVersion.tokenize(".")
-pythonVersionA = pythonVersionArray[0]
-pythonVersionB = pythonVersionArray[1]
-pythonVersionAdotB = "${pythonVersionA}.${pythonVersionB}"
+pythonVersion = [:]
+pythonVersionAdotB = [:]
 
 // Email Notifications - List of Recipients
 default_Recipients = ["Bang.Nguyen@autodesk.com"]
@@ -639,7 +635,7 @@ def Initialize(String buildConfig) {
         }
 
         // Define where to publish PySide6 on Artifactory
-        artifactoryTarget = "oss-stg-generic/pyside6/${pysideVersion}/Maya/Qt${qtVersion}/Python${pythonVersionAdotB}/${buildTime}/"
+        artifactoryTarget = "oss-stg-generic/pyside6/${pysideVersion}/Maya/Qt${qtVersion}/Python${pythonVersionAdotB[buildConfig]}/${buildTime}/"
 
         (QtArtifact_Win, QtArtifact_Rhel8, QtArtifact_Mac) = getQtArtifacts(params.QtBuildID, "${artifactoryRoot}api/storage/oss-stg-generic/Qt/${qtVersion}/Maya")
         println("Win: ${QtArtifact_Win}, Rhel8: ${QtArtifact_Rhel8}, Mac: ${QtArtifact_Mac}")
@@ -662,7 +658,13 @@ def Setup(String buildConfig) {
     def stage = "Setup"
     env.PYSIDEVERSION = "${pysideVersion}"
     env.QTVERSION = "${qtVersion}"
-    env.PYTHONVERSION = "${PythonVersion}"
+
+    // PythonVersion: Extract MAJOR(A), MINOR(B), and REVISION(C)
+    pythonVersion[buildConfig] = params.PythonVersion
+    def pythonVersionArray = params.PythonVersion.tokenize(".")
+    def pythonVersionA = pythonVersionArray[0]
+    def pythonVersionB = pythonVersionArray[1]
+    pythonVersionAdotB[buildConfig] = "${pythonVersionA}.${pythonVersionB}"
 
     try {
         def workDir = getWorkspace(buildConfig)
@@ -684,37 +686,34 @@ def Setup(String buildConfig) {
         if (checkOS() == "Mac") {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Mac.tar.gz"
             artifacts[buildConfig]  = ["${QtArtifact_Mac}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-macos-universal.tar.gz"]
-            if (PythonVersion == '3.10.6') {
+            if (pythonVersion[buildConfig] == '3.10.6') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-mac-universal2-expandedframework-MANUAL-2022_09_22_1000.tar.gz"
-            } else if (PythonVersion == '3.9.7') {
+            } else if (pythonVersion[buildConfig] == '3.9.7') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-mac-002-universal2-expandedframework.tar.gz"
             }
         }
         else if (checkOS() == "RedHat") {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Rhel8.tar.gz"
             artifacts[buildConfig]  = ["${QtArtifact_Rhel8}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-linux-Rhel8.2-gcc9.2-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz"]
-            if (PythonVersion == '3.10.6') {
+            if (pythonVersion[buildConfig] == '3.10.6') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-11.2.1-system_openssl-1.1.1k_MANUAL_202210211108.zip"
-            } else if (PythonVersion == '3.9.7') {
+            } else if (pythonVersion[buildConfig] == '3.9.7') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-2.tar.gz"
             }
         }
         else {
-            // Temporarily build just 3.9.7 even when 3.10.6 is selected - this is to test if the
-            // python version introduced issues detecting python limited API in Windows debug
-            // builds.
-            PythonVersion = "3.9.7"
-            env.PYTHONVERSION = "${PythonVersion}"
-            pythonVersionArray = PythonVersion.tokenize(".")
-            pythonVersionA = pythonVersionArray[0]
-            pythonVersionB = pythonVersionArray[1]
-            pythonVersionAdotB = "${pythonVersionA}.${pythonVersionB}"
+            pythonVersion[buildConfig] = "3.9.7"
+            pythonVersionAdotB[buildConfig] = "3.9"
 
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Windows.zip"
             artifacts[buildConfig]  = ["${QtArtifact_Win}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-windows-vs2019_64.zip", "team-maya-generic/openssl/1.1.1g/openssl-1.1.1g-win-vc140.zip", "team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip", "team-shotgun-view-master-generic/jom/jom_1_1_3.zip"]
-            if (PythonVersion == '3.10.6') {
-                artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-win-MANUAL-2022_08_31_1430.zip"
-            } else if (PythonVersion == '3.9.7') {
+            if (pythonVersion[buildConfig] == '3.10.6') {
+                //artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-win-MANUAL-2022_08_31_1430.zip"
+                // Temporarily build just 3.9.7 under windows - to see if the
+                // faulty python limited api library detection logic is caused
+                // by a newer python.
+                artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-win-001.zip"
+            } else if (pythonVersion[buildConfig] == '3.9.7') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-win-001.zip"
             }
         }
@@ -767,6 +766,7 @@ def Build(String workDir, String buildConfig) {
     def buildDir = "${workDir}/build"
     def srcDir = "${workDir}/src"
     def scriptDir = "${workDir}/src/autodesk-maya-scripts"
+    env.PYTHONVERSION = "${pythonVersion[buildConfig]}"
 
     if (isUnix()){
         runOSCommand("echo ${buildConfig} PythonVersion: $PYTHONVERSION Pyside: $PYSIDEVERSION Qt: $QTVERSION")
@@ -780,24 +780,24 @@ def Build(String workDir, String buildConfig) {
         dir (srcDir) {
             def cpythonDir = "${workDir}/${downloadDir}/cpython"
             if (checkOS() == "Mac") {
-                if (pythonVersionAdotB == '3.9') {
+                if (pythonVersionAdotB[buildConfig] == '3.9') {
                     runOSCommand('brew link --overwrite --force python@3.9')
                 }
-                env.PYTHONEXE = "${cpythonDir}/${PythonVersion}/RelWithdebInfo/bin/python" // Note lowercase d debInfo
+                env.PYTHONEXE = "${cpythonDir}/${pythonVersion[buildConfig]}/RelWithdebInfo/bin/python" // Note lowercase d debInfo
                 runOSCommand("find ${cpythonDir} -not -perm -200 -exec chmod u+w {} \\;")
                 runOSCommand("xattr -r -d com.apple.quarantine ${cpythonDir}") // Remove quarantine so the interpreter will actually run.
                 runOSCommand('xcodebuild -version && xcodebuild -showsdks')
-                runOSCommand("""PYTHONEXE=${env.PYTHONEXE} PYTHONVERSION=${PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_build_pyside6_osx.sh ${workDir}""")
+                runOSCommand("""PYTHONEXE=${env.PYTHONEXE} PYTHONVERSION=${pythonVersion[buildConfig]} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_build_pyside6_osx.sh ${workDir}""")
             }
             else if (checkOS() == "Linux" || checkOS() == "RedHat") {
                 def gccToolset = (checkOS() == "Linux") ? "devtoolset-9" : "gcc-toolset-11"
-                env.PYTHONEXE = "${cpythonDir}/${PythonVersion}/RelWithDebInfo/bin/python${pythonVersionAdotB}"
-                env.PYTHONDEXE = "${cpythonDir}/${PythonVersion}/Debug/bin/python${pythonVersionAdotB}"
-                runOSCommand("scl enable ${gccToolset} 'PYTHONEXE=${env.PYTHONEXE} PYTHONDEXE=${env.PYTHONDEXE} PYTHONVERSION=${PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} bash $scriptDir/adsk_maya_build_pyside6_lnx.sh ${workDir}'")
+                env.PYTHONEXE = "${cpythonDir}/${pythonVersion[buildConfig]}/RelWithDebInfo/bin/python${pythonVersionAdotB[buildConfig]}"
+                env.PYTHONDEXE = "${cpythonDir}/${pythonVersion[buildConfig]}/Debug/bin/python${pythonVersionAdotB[buildConfig]}"
+                runOSCommand("scl enable ${gccToolset} 'PYTHONEXE=${env.PYTHONEXE} PYTHONDEXE=${env.PYTHONDEXE} PYTHONVERSION=${pythonVersion[buildConfig]} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} bash $scriptDir/adsk_maya_build_pyside6_lnx.sh ${workDir}'")
             }
             else {
-                env.PYTHONEXE = "${cpythonDir}/${PythonVersion}/RelWithdebInfo/python.exe"
-                env.PYTHONDEXE = "${cpythonDir}/${PythonVersion}/Debug/python_d.exe"
+                env.PYTHONEXE = "${cpythonDir}/${pythonVersion[buildConfig]}/RelWithdebInfo/python.exe"
+                env.PYTHONDEXE = "${cpythonDir}/${pythonVersion[buildConfig]}/Debug/python_d.exe"
                 runOSCommand("""$scriptDir\\adsk_maya_build_pyside6_win.bat ${workDir}""")
             }
         }
@@ -811,15 +811,16 @@ def Build(String workDir, String buildConfig) {
 def Package(String workDir, String buildConfig) {
     def stage = "Package"
     try {
+        env.PYTHONVERSION = "${pythonVersion[buildConfig]}"
         assert pysideVersion != ""
         def srcDir = "${workDir}/src"
         def scriptDir = "${workDir}/src/autodesk-maya-scripts"
         dir (srcDir) {
             if (checkOS() == "Mac") {
-                runOSCommand("""PYTHONVERSION=${PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_package_pyside6_osx.sh ${workDir}""")
+                runOSCommand("""PYTHONVERSION=${pythonVersion[buildConfig]} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_package_pyside6_osx.sh ${workDir}""")
             }
             else if (checkOS() == "Linux" || checkOS() == "RedHat") {
-                runOSCommand("""PYTHONVERSION=${PythonVersion} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_package_pyside6_lnx.sh ${workDir}""")
+                runOSCommand("""PYTHONVERSION=${pythonVersion[buildConfig]} PYSIDEVERSION=${pysideVersion} QTVERSION=${qtVersion} $scriptDir/adsk_maya_package_pyside6_lnx.sh ${workDir}""")
             }
             else {
                 runOSCommand("""$scriptDir\\adsk_maya_package_pyside6_win.bat ${workDir}""")
