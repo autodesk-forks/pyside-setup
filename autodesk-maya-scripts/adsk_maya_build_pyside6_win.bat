@@ -203,9 +203,8 @@ set LIB=%ORIGLIB%;%PYTHON_DIR%\Debug\libs
 
 REM Ensure that pip and its required modules are installed for Python 3 (debug version)
 %PYTHON_D_EXE% -m ensurepip
-%PYTHON_D_EXE% -m pip install pip
-%PYTHON_D_EXE% -m pip install setuptools
-%PYTHON_D_EXE% -m pip install wheel==0.34.1
+%PYTHON_D_EXE% -m pip install --upgrade pip
+%PYTHON_D_EXE% -m pip install -r requirements.txt
 %PYTHON_D_EXE% -m pip install packaging
 
 REM Note: the `slots` keyword is already properly defined in the debug version
