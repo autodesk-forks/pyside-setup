@@ -163,9 +163,9 @@ REM Create qt.conf file
 echo [Paths] > %QTPATH%\bin\qt.conf
 echo Prefix=.. >> %QTPATH%\bin\qt.conf
 
-call :build_release
-if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 call :build_debug
+if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+call :build_release
 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 goto END
 
