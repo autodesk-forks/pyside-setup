@@ -176,6 +176,7 @@ echo Building release using %PYTHON_EXE%
 
 set LIB=%ORIGLIB%;%PYTHON_DIR%\RelWithDebInfo\libs
 echo LIB=%LIB%
+set EXTRA_SETUP_PY_OPTS=--relwithdebinfo
 
 REM Ensure that pip and its required modules are installed for Python 3 (release version)
 @echo on
@@ -190,8 +191,8 @@ REM Before setting up, make sure that `slots` keyword is properly defined
 sed -i -e 's/\(PyType_Slot\ \*slots\)_/\1/' %PYTHON_DIR%/RelWithDebInfo/include/object.h
 
 @echo on
-%PYTHON_EXE% setup.py install --relwithdebinfo --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside6 Release ****" && exit /b 1
-%PYTHON_EXE% setup.py bdist_wheel --relwithdebinfo --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_RELWITHDEBINFO% || echo "**** Failed to build Pyside6 bdist_wheel Release ****" && exit /b 1
+%PYTHON_EXE% setup.py install --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_RELWITHDEBINFO% %EXTRA_SETUP_PY_OPTS% || echo "**** Failed to build Pyside6 Release ****" && exit /b 1
+%PYTHON_EXE% setup.py bdist_wheel --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\RelWithDebInfo\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_RELWITHDEBINFO% %EXTRA_SETUP_PY_OPTS% || echo "**** Failed to build Pyside6 bdist_wheel Release ****" && exit /b 1
 @echo off
 
 REM Unpack the wheels
@@ -215,6 +216,7 @@ echo Building debug using %PYTHON_D_EXE%
 %PYTHON_D_EXE% -V
 
 set LIB=%ORIGLIB%;%PYTHON_DIR%\Debug\libs
+set EXTRA_SETUP_PY_OPTS=--debug --limited-api=no
 
 REM Ensure that pip and its required modules are installed for Python 3 (debug version)
 @echo on
@@ -228,8 +230,8 @@ REM Ensure that pip and its required modules are installed for Python 3 (debug v
 REM Note: the `slots` keyword is already properly defined in the debug version
 
 @echo on
-%PYTHON_D_EXE% setup.py install --debug --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_DEBUG% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
-%PYTHON_D_EXE% setup.py bdist_wheel --debug --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_DEBUG% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
+%PYTHON_D_EXE% setup.py install --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --prefix=%PREFIX_DIR_DEBUG% %EXTRA_SETUP_PY_OPTS% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
+%PYTHON_D_EXE% setup.py bdist_wheel --qtpaths=%QTPATH%\bin\qtpaths.exe --openssl=%OPENSSLPATH%\Debug\bin --ignore-git --parallel=%NUMBER_OF_PROCESSORS% --dist-dir=%DIST_DIR_DEBUG% %EXTRA_SETUP_PY_OPTS% || echo "**** Failed to build Pyside2 Debug ****" && exit /b 1
 @echo off
 
 REM Unpack the wheels
