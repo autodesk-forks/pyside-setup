@@ -86,7 +86,6 @@ REM In Maya's python 3 module, the executables are located at the root of their 
 set PYTHON_EXE=%PYTHON_DIR%\RelWithDebInfo\python.exe
 set PYTHON_D_EXE=%PYTHON_DIR%\Debug\python_d.exe
 set PYTHONEXEPATH=%PYTHON_DIR%\RelWithDebInfo;%PYTHON_DIR%\RelWithDebInfo\DLLs
-set WHEEL_EXE=%PYTHON_DIR%\RelWithDebInfo\Scripts\wheel.exe
 
 REM Environment Variable - PYSIDEVERSION - Version of PySide6 built
 if not defined PYSIDEVERSION (
@@ -181,10 +180,10 @@ echo LIB=%LIB%
 REM Ensure that pip and its required modules are installed for Python 3 (release version)
 @echo on
 %PYTHON_EXE% -m ensurepip
-%PYTHON_EXE% -m pip install pip
-%PYTHON_EXE% -m pip install setuptools
-%PYTHON_EXE% -m pip install wheel==0.34.1
+%PYTHON_EXE% -m pip install --upgrade pip
+%PYTHON_EXE% -m pip install -r requirements.txt
 %PYTHON_EXE% -m pip install packaging
+%PYTHON_EXE% -m pip install wheel
 @echo off
 
 REM Before setting up, make sure that `slots` keyword is properly defined
@@ -223,6 +222,7 @@ REM Ensure that pip and its required modules are installed for Python 3 (debug v
 %PYTHON_D_EXE% -m pip install --upgrade pip
 %PYTHON_D_EXE% -m pip install -r requirements.txt
 %PYTHON_D_EXE% -m pip install packaging
+%PYTHON_D_EXE% -m pip install wheel
 @echo off
 
 REM Note: the `slots` keyword is already properly defined in the debug version
