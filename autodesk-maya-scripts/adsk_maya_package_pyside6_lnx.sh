@@ -37,6 +37,28 @@ if [[ $# -eq 0 ]]; then
 fi
 
 set +u
+
+isMacOS=0
+isLinux=0
+isWin=0
+case $OSTYPE in
+  darwin*)
+    isMacOS=1
+    ;;
+  linux*)
+    isLinux=1
+    ;;
+  msys*|cygwin*)
+    isWin=1
+    echo >&2 "error: Windows builds using this script are not supported yet"
+    # Need a way to source vcvarsall.
+    exit 1
+    ;;
+  *)
+    echo >&2 "error: running on unknown OS"
+    exit 1
+esac
+
 # Environment Variable - QTVERSION - Version of Qt used to build PySide6
 if [[ -z "${QTVERSION}" ]]; then
     echo >&2 "QTVERSION is undefined, please set. Example: export QTVERSION=6.2.3"
@@ -53,8 +75,13 @@ else
     echo "PYSIDEVERSION=${PYSIDEVERSION}"
 fi
 
-# Location of the workspace directory (root)
-export WORKSPACE_DIR=$1
+# Location of the workspace directory (root), made absolute so RPATHs can be detected properly.
+export WORKSPACE_DIR=$(cd $1; pwd)
+if [[ ! -d "$WORKSPACE_DIR" ]]; then
+    echo >&2 "Invalid WORKSPACE_DIR ${WORKSPACE_DIR}. aborting."
+    exit 1
+fi
+
 # Location of external dependencies directory
 export EXTERNAL_DEPENDENCIES_DIR=$WORKSPACE_DIR/external_dependencies
 
@@ -97,21 +124,24 @@ if [[ ! "$PYTHONVERSION" =~ (3\.9\.7|3\.10\.[0-9]*) ]]; then
     exit 1
 fi
 
-# Check for patchelf
-export PATCHELF=patchelf
-set +e
-$PATCHELF --version
-if [[ $? -ne 0 ]]; then
-    echo >&2 "Couldn't find patchelf. aborting."
-    exit 1
+tools=""
+if [[ $isLinux -eq 1 ]]; then
+    tools="patchelf"
+elif [[ $isMacOS -eq 1 ]]; then
+    tools="install_name_tool otool"
 fi
-set -e
-
-# Python 2.7.X and 3.7.X artifacts had files with the pymalloc suffix
-# Since we do not support those with PySide6, no suffix is used.
-# This variable is still present just in case a future python release
-# used has a pymalloc suffix.
-export PYMALLOC_SUFFIX=
+# Check for rpath tools
+for rptool in $tools ; do
+    # Check for ne 127 because install_name_tool does not have a noop
+    # option. 127 is the shell's return code for executable not found.
+    set +e
+    $rptool --version
+    if [[ $? -eq 127 ]]; then
+        echo >&2 "Couldn't find ${rptool}. aborting."
+        exit 1
+    fi
+    set -e
+done
 
 
 # Location of the install directory within the workspace (where the builds will be located)
@@ -157,8 +187,10 @@ do
     echo "Packaging $BUILDTYPE..."
     # Define folder names
     export BT_PREFIX=
-    if [ "$BUILDTYPE" == "debug" ]; then
+    if [[ "$BUILDTYPE" == "debug" && $isLinux -eq 1 ]]; then
         export BT_PREFIX=dp
+    elif [[ "$BUILDTYPE" == "debug" ]]; then
+        export BT_PREFIX=d
     fi
     # the build directory name we are looking for is in the forms:
     # build/qfpdp-py3.9-qt6.3.1-64bit-debug/install
@@ -177,74 +209,116 @@ do
     export PYSIDE6_ROOT_DIR="${INSTALL_DIR}/${BUILD_DIRNAME}"
 
     # Copy the build (release, debug) to the installation directory
+    echo "Copying the build (release, debug) to the installation directory ${PYSIDE6_ROOT_DIR}"
     cp -R "${BUILDTYPE_INSTALL_DIR}/" "$PYSIDE6_ROOT_DIR"
 
     # Workaround: Since the pyside6-uic and pyside6-rcc wrappers are not installed in the build directory, we need to copy them from
     # the --prefix directory into the artifact's /bin folder
     wrappers=$(ls ${PREFIX_DIR}/${BUILDTYPE}/bin/pyside6-* ${PREFIX_DIR}/${BUILDTYPE}/bin/shiboken6*)
-    for wrapper in ${wrappers} ; do
+    for wrapper in ${wrappers}
+    do
+        echo "Copying \"$wrapper\" to \"$PYSIDE6_ROOT_DIR/bin/\""
         cp "$wrapper" "$PYSIDE6_ROOT_DIR/bin/"
 
         # Replace interpreter path for relative path to mayapy
+        echo "Updating $wrapper script's shebang line with regex $PATH_TO_MAYAPY_REGEX"
         sed -i -e "${PATH_TO_MAYAPY_REGEX}" "$PYSIDE6_ROOT_DIR/bin/$(basename $wrapper)"
     done
 
     # Copy the .dist-info metadata folders, since the pyside6-uic and pyside6-rcc wrappers rely on [console_scripts] entrypoints.
     for distfolder in PySide6 shiboken6 shiboken6_generator
     do
+        echo "Copying $distfolder-PYSIDEVERSION.dist-info to .../site-packages"
         cp -R "$DIST_DIR/$BUILDTYPE/$distfolder-$PYSIDEVERSION/$distfolder-$PYSIDEVERSION.dist-info" "$PYSIDE6_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/$distfolder-$PYSIDEVERSION.dist-info"
+
+        echo "Renaming $distfolder-PYSIDEVERSION.dist-info/RECORD so package cannot be pip uninstalled"
         mv "$PYSIDE6_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/$distfolder-$PYSIDEVERSION.dist-info/RECORD" "$PYSIDE6_ROOT_DIR/lib/python$PYTHONVERSION_AdotB/site-packages/$distfolder-$PYSIDEVERSION.dist-info/RECORD-DONOTUNINSTALL"
     done
 
-    # Copy uic and rcc executable files into site-packages/PySide6, since it is the first search location for loadUiType.
+    # Link uic and rcc executable files into site-packages/PySide6, since it is the first search location for pyside6-uic that is used by loadUiType.
     for sitepackagesfile in rcc uic
     do
         ln -s "../../../../bin/${sitepackagesfile}" "${PYSIDE6_ROOT_DIR}/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$sitepackagesfile"
     done
 
-    # Copy the 'scripts' PySide6 sudmodules folder manually, since the pyside6-uic and pyside6-rcc wrappers invoke
-    # pyside_tool.py through [console_scripts] entrypoints.
+    if [[ $isMacOS -eq 1 ]]; then
+        # Remove incorrect RPATHs of installed site-packages/PySide6/uic
+        install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib" -delete_rpath '@loader_path' "${PYSIDE6_ROOT_DIR}/lib/python$PYTHONVERSION_AdotB/site-packages/PySide6/uic"
+    fi
+
+    # Copy the 'scripts' PySide6 folder manually, since the pyside6-uic and
+    # pyside6-rcc wrappers invoke pyside_tool.py through [console_scripts]
+    # entrypoints.
+    echo "Copying site-packages/PySide6/scripts from $PREFIX_DIR to $PYSIDE6_ROOT_DIR"
     cp -R "$PREFIX_DIR/$BUILDTYPE/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/scripts" "${PYSIDE6_ROOT_DIR}/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/"
 
     # Workaround: Until the issue is addressed within PySide6 build scripts, we manually copy the 'support' PySide6 submodule
     # into the build to prevent the "__feature__ could not be imported" error.
+    echo "Copying site-packages/PySide6/support from $PREFIX_DIR to $PYSIDE6_ROOT_DIR"
     cp -R "$PREFIX_DIR/$BUILDTYPE/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/support" "${PYSIDE6_ROOT_DIR}/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/"
 
     # Delete __pycache folders
+    echo "Deleting __pycache__ folders from install"
     find "${PYSIDE6_ROOT_DIR}/lib/python${PYTHONVERSION_AdotB}/site-packages/" -type d -name "__pycache__" -exec rm -r {} +
 
-    echo "Changing RUNPATHs (Python 3 - ${BUILDTYPE})"
-    export DEBUG_SUFFIX=
-    if [[ "$BUILDTYPE" == "debug" ]]; then
-        export DEBUG_SUFFIX=d
+    echo "Changing RPATHs of tools (${BUILDTYPE})"
+    exe_format="ELF"
+    if [[ $isMacOS -eq 1 ]]; then
+        exe_format="Mach-O"
     fi
-
-    binfiles=$(find "$PYSIDE6_ROOT_DIR/bin" -type f -exec sh -c "file {} | grep -Pi ': elf' > /dev/null 2>&1" \; -print)
+    binfiles=$(find "$PYSIDE6_ROOT_DIR/bin" -type f -exec sh -c "file {} | grep -Pi ': ${exe_format}' > /dev/null 2>&1" \; -print)
     for binfile in ${binfiles}
     do
         export binfilepath="$PYSIDE6_ROOT_DIR/bin/$binfile"
-        if [[ -e "$binfilepath" ]]; then
+        if [[ $isLinux -eq 1 ]]; then
+            set +e
             $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$binfilepath"
+            rpath_tool_ret=$?
+            set -e
+        else
+            install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/libclang/lib" "$binfilepath"
+            install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib" "$binfilepath"
+            set +e
+            install_name_tool -add_rpath @loader_path/../MacOS "$binfilepath"
+            rpath_tool_ret=$?
+            set -e
+        fi
+        if [[ $rpath_tool_ret -ne 0 ]]; then
+            echo >&2 "**** Error: Failed setting rpath. ****"
+            if [[ $isMacOS -eq 1 ]]; then
+                echo "Calling otool -l */${binfile}"
+                echo "otool -l \"${binfilepath}\""
+                otool -l "$binfilepath"
+            fi
+            exit 1
         fi
     done
 
-    for libfile in pyside6 pyside6qml shiboken6
-    do
-        $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$PYSIDE6_ROOT_DIR/lib/lib$libfile.cpython-${PYTHONVERSION_AB}${DEBUG_SUFFIX}${PYMALLOC_SUFFIX}-x86_64-linux-gnu.so.${PYSIDEVERSION}"
-    done
+    if [[ $isLinux -eq 1 ]]; then
+        echo "Changing RPATHs of libs (Linux only) (${BUILDTYPE})"
+        export DEBUG_SUFFIX=
+        if [[ "$BUILDTYPE" == "debug" ]]; then
+            export DEBUG_SUFFIX=d
+        fi
 
-    for sitepackagesfile in uic rcc
-    do
-        $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../../../../lib' "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$sitepackagesfile"
-    done
+        for libfile in pyside6 pyside6qml shiboken6
+        do
+            $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$PYSIDE6_ROOT_DIR/lib/lib$libfile.abi3.so.${PYSIDEVERSION}"
+        done
 
-    $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../../../../lib' "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/shiboken6/Shiboken.cpython-${PYTHONVERSION_AB}${DEBUG_SUFFIX}${PYMALLOC_SUFFIX}-x86_64-linux-gnu.so"
+        for sitepackagesfile in uic rcc
+        do
+            $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../../../../lib' "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$sitepackagesfile"
+        done
 
-    qtmodules=$(ls "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6"/Qt*.so | sed -e 's/^.*\/PySide6\/\(Qt[^.]*\)\..*$/\1/')
-    for qtmodule in ${qtmodules}
-    do
-        $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../../../../lib' "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$qtmodule.cpython-${PYTHONVERSION_AB}${DEBUG_SUFFIX}${PYMALLOC_SUFFIX}-x86_64-linux-gnu.so"
-    done
+        $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../../../../lib' "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/shiboken6/Shiboken.abi3.so"
+
+        qtmodules=$(ls "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6"/Qt*.so | sed -e 's/^.*\/PySide6\/\(Qt[^.]*\)\..*$/\1/')
+        for qtmodule in ${qtmodules}
+        do
+            $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../../../../lib' "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$qtmodule.abi3.so"
+        done
+    fi
 done
 echo "==== Finished Assembling ===="
 
@@ -252,7 +326,7 @@ if [[ $COMPRESS -ne 0 ]]; then
     buildID=$(date +%Y%m%d%H%M)
     gitCommitShort=$(git rev-parse HEAD | cut -c1-8)
     cd "$INSTALL_DIR"
-    outdir=$(realpath "../out")
+    outdir=$(cd ../out; pwd)
     tarballPath="${outdir}/${buildID}-${gitCommitShort}-MANUAL-Maya-PySide6-Linux.tar.gz"
     mkdir -p "$outdir"
     echo -n "Creating tarball $tarballPath"
