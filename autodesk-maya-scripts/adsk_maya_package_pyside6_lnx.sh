@@ -275,19 +275,28 @@ do
             $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$binfilepath"
             rpath_tool_ret=$?
             set -e
-        else
-            install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/libclang/lib" "$binfilepath"
-            install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib" "$binfilepath"
+        elif [[ $isMacOS -eq 1 ]]; then
             set +e
-            install_name_tool -add_rpath @loader_path/../MacOS "$binfilepath"
+            install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/libclang/lib" "$binfilepath"
             rpath_tool_ret=$?
+            if [ $rpath_tool_ret -eq 0 ]; then
+                install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib" "$binfilepath"
+                rpath_tool_ret=$?
+            fi
+            if [ $rpath_tool_ret -eq 0 ]; then
+                install_name_tool -add_rpath @loader_path/../MacOS "$binfilepath"
+                rpath_tool_ret=$?
+            fi
             set -e
         fi
+
         if [[ $rpath_tool_ret -ne 0 ]]; then
             echo >&2 "**** Error: Failed setting rpath. ****"
-            if [[ $isMacOS -eq 1 ]]; then
-                echo "Calling otool -l */${binfile}"
-                echo "otool -l \"${binfilepath}\""
+            if [[ $isLinux -eq 1 ]]; then
+                echo "RPATH dump for ${binfilepath}:"
+                readelf -d "$binfilepath" | grep -i "runpath"
+            elif [[ $isMacOS -eq 1 ]]; then
+                echo "otool -l dump for ${binfilepath}:"
                 otool -l "$binfilepath"
             fi
             exit 1
@@ -295,6 +304,21 @@ do
     done
 
     if [[ $isLinux -eq 1 ]]; then
+        function set_rpath() {
+            rpath=$1
+            filepath=$2
+
+            set +e
+            $PATCHELF --set-rpath "$1" "$2"
+            if [[ $? -ne 0 ]]; then
+                echo >&2 "**** Error: Failed setting rpath. ****"
+                echo "RPATH dump for ${filepath}:"
+                readelf -d "$filepath" | grep -i "runpath"
+                exit 1
+            fi
+            set -e
+        }
+
         echo "Changing RPATHs of libs (Linux only) (${BUILDTYPE})"
         export DEBUG_SUFFIX=
         if [[ "$BUILDTYPE" == "debug" ]]; then
@@ -303,20 +327,24 @@ do
 
         for libfile in pyside6 pyside6qml shiboken6
         do
-            $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$PYSIDE6_ROOT_DIR/lib/lib$libfile.abi3.so.${PYSIDEVERSION}"
+            set_rpath '$ORIGIN:$ORIGIN/../lib' \
+                "${PYSIDE6_ROOT_DIR}/lib/lib${libfile}.abi3.so.${PYSIDEVERSION}"
         done
 
         for sitepackagesfile in uic rcc
         do
-            $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../../../../lib' "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$sitepackagesfile"
+            set_rpath '$ORIGIN:$ORIGIN/../../../../lib' \
+                "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$sitepackagesfile"
         done
 
-        $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../../../../lib' "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/shiboken6/Shiboken.abi3.so"
+        set_rpath '$ORIGIN:$ORIGIN/../../../../lib' \
+                "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/shiboken6/Shiboken.abi3.so"
 
         qtmodules=$(ls "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6"/Qt*.so | sed -e 's/^.*\/PySide6\/\(Qt[^.]*\)\..*$/\1/')
         for qtmodule in ${qtmodules}
         do
-            $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../../../../lib' "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$qtmodule.abi3.so"
+            set_rpath '$ORIGIN:$ORIGIN/../../../../lib' \
+                "$PYSIDE6_ROOT_DIR/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$qtmodule.abi3.so"
         done
     fi
 done
