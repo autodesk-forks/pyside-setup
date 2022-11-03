@@ -241,11 +241,6 @@ do
         ln -s "../../../../bin/${sitepackagesfile}" "${PYSIDE6_ROOT_DIR}/lib/python${PYTHONVERSION_AdotB}/site-packages/PySide6/$sitepackagesfile"
     done
 
-    if [[ $isMacOS -eq 1 ]]; then
-        # Remove incorrect RPATHs of installed site-packages/PySide6/uic
-        install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib" -delete_rpath '@loader_path' "${PYSIDE6_ROOT_DIR}/lib/python$PYTHONVERSION_AdotB/site-packages/PySide6/uic"
-    fi
-
     # Copy the 'scripts' PySide6 folder manually, since the pyside6-uic and
     # pyside6-rcc wrappers invoke pyside_tool.py through [console_scripts]
     # entrypoints.
@@ -266,10 +261,10 @@ do
     if [[ $isMacOS -eq 1 ]]; then
         exe_format="Mach-O"
     fi
-    binfiles=$(find "$PYSIDE6_ROOT_DIR/bin" -type f -exec sh -c "file {} | grep -Pi ': ${exe_format}' > /dev/null 2>&1" \; -print)
-    for binfile in ${binfiles}
+    binfilepaths=$(find "$PYSIDE6_ROOT_DIR/bin" -type f -exec sh -c "file {} \
+               | grep -i ': ${exe_format}' > /dev/null 2>&1" \; -print)
+    for binfilepath in ${binfilepaths}
     do
-        export binfilepath="$PYSIDE6_ROOT_DIR/bin/$binfile"
         if [[ $isLinux -eq 1 ]]; then
             set +e
             $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$binfilepath"
@@ -277,14 +272,10 @@ do
             set -e
         elif [[ $isMacOS -eq 1 ]]; then
             set +e
-            install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/libclang/lib" "$binfilepath"
+            install_name_tool -delete_rpath '@loader_path/../lib' "$binfilepath"
             rpath_tool_ret=$?
             if [ $rpath_tool_ret -eq 0 ]; then
-                install_name_tool -delete_rpath "$WORKSPACE_DIR/external_dependencies/qt_$QTVERSION/lib" "$binfilepath"
-                rpath_tool_ret=$?
-            fi
-            if [ $rpath_tool_ret -eq 0 ]; then
-                install_name_tool -add_rpath @loader_path/../MacOS "$binfilepath"
+                install_name_tool -add_rpath '@loader_path/../MacOS' "$binfilepath"
                 rpath_tool_ret=$?
             fi
             set -e
