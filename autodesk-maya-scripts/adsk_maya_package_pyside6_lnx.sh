@@ -3,6 +3,15 @@
 set -e # Terminate with failure if any command returns nonzero
 set -u # Terminate with failure any time an undefined variable is expanded
 
+function in_list() {
+    local list="$1"
+    local item="$2"
+    if [[ $list =~ (^|[[:space:]])"$item"($|[[:space:]]) ]] ; then
+        ret=0; else ret=1
+    fi
+    return $ret
+}
+
 COMPRESS=0
 kept_args=()
 for arg in "$@"; do
@@ -265,6 +274,14 @@ do
                | grep -i ': ${exe_format}' > /dev/null 2>&1" \; -print)
     for binfilepath in ${binfilepaths}
     do
+        # Just skip over the Assistant, Linguist and Designer - we're not using
+        # them, and the existing rpaths are different.
+        excludelist="Assistant Linguist Designer"
+        if `in_list "$excludelist" "$(basename $binfilepath)"`; then
+            echo >&2 "Skipping $(basename $binfilepath) RPATH change"
+            continue;
+        fi
+
         if [[ $isLinux -eq 1 ]]; then
             set +e
             $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$binfilepath"
