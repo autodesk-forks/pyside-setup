@@ -83,6 +83,14 @@ if [[ -z "${PYSIDEVERSION}" ]]; then
 else
     echo "PYSIDEVERSION=${PYSIDEVERSION}"
 fi
+# Strip off any alpha/beta version parts ("a1", "b1" suffix typically -
+# e.g. the `a1` in 6.4.0a1
+PYSIDEVERSION_ARRAY=($(echo $PYSIDEVERSION | sed -e 's/[ab][0-9]\+//' | tr "." "\n"))
+PYSIDEVERSION_A=${PYSIDEVERSION_ARRAY[0]}
+PYSIDEVERSION_B=${PYSIDEVERSION_ARRAY[1]}
+PYSIDEVERSION_C=${PYSIDEVERSION_ARRAY[2]}
+PYSIDEVERSION_AdotBdotC=${PYSIDEVERSION_A}.${PYSIDEVERSION_B}.${PYSIDEVERSION_C}
+
 
 # Location of the workspace directory (root), made absolute so RPATHs can be detected properly.
 export WORKSPACE_DIR=$(cd $1; pwd)
@@ -336,7 +344,7 @@ do
         for libfile in pyside6 pyside6qml shiboken6
         do
             set_rpath '$ORIGIN:$ORIGIN/../lib' \
-                "${PYSIDE6_ROOT_DIR}/lib/lib${libfile}.abi3.so.${PYSIDEVERSION}"
+                "${PYSIDE6_ROOT_DIR}/lib/lib${libfile}.abi3.so.${PYSIDEVERSION_AdotBdotC}"
         done
 
         for sitepackagesfile in uic rcc
