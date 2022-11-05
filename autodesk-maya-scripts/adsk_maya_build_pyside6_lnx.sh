@@ -192,6 +192,7 @@ echo "NUMBER_OF_PROCESSORS=$NUMBER_OF_PROCESSORS"
 
 for BUILDTYPE in release debug;
 do
+    echo "Building $BUILDTYPE..."
     export DEBUG_SUFFIX=
     if [ "$BUILDTYPE" == "debug" ]; then
         export BUILDTYPE_STR="Debug"
@@ -209,7 +210,7 @@ do
     if [[ $isMacOS -eq 1 ]]; then
         # No need to set --macos-deployment-target=11.0, as Qt was already built
         # with 11 as minimum deployment target
-        export EXTRA_SETUP_PY_OPTS="--macos-arch='x86_64;arm64'"
+        export EXTRA_SETUP_PY_OPTS="$EXTRA_SETUP_PY_OPTS --macos-arch='x86_64;arm64'"
     fi
 
     # By default, the pyside6-uic and pyside6-rcc wrappers are installed in the Python directory during the install step.
