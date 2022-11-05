@@ -284,7 +284,7 @@ do
 
         if [[ $isLinux -eq 1 ]]; then
             set +e
-            $PATCHELF --set-rpath '$ORIGIN:$ORIGIN/../lib' "$binfilepath"
+            patchelf --set-rpath '$ORIGIN:$ORIGIN/../lib' "$binfilepath"
             rpath_tool_ret=$?
             set -e
         elif [[ $isMacOS -eq 1 ]]; then
@@ -317,7 +317,7 @@ do
             filepath=$2
 
             set +e
-            $PATCHELF --set-rpath "$1" "$2"
+            patchelf --set-rpath "$1" "$2"
             if [[ $? -ne 0 ]]; then
                 echo >&2 "**** Error: Failed setting rpath. ****"
                 echo "RPATH dump for ${filepath}:"
