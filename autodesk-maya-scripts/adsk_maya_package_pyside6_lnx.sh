@@ -367,6 +367,7 @@ done
 echo "==== Finished Assembling ===="
 
 if [[ $COMPRESS -ne 0 ]]; then
+    packageDate=$(date +%Y-%m-%d-%H-%M)
     buildID=$(date +%Y%m%d%H%M)
     gitCommitShort=$(git rev-parse HEAD | cut -c1-8)
     cd "$INSTALL_DIR"
