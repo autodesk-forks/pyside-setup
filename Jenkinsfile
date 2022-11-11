@@ -845,7 +845,9 @@ def Publish(String workDir, String buildConfig) {
     def props
     try {
         dir(workDir) {
-            artifactUpload = new ors.utils.common_artifactory(steps, env, Artifactory, 'svc-p-mayaoss')
+            // Temporarily use svc_p_mescm instead of svc-p-mayaoss account as
+            // the latter seems to not have permissions to publish anymore.
+            artifactUpload = new ors.utils.common_artifactory(steps, env, Artifactory, 'svc-p-mescm')
 
             if (checkOS() == "Mac") {
                 pattern = "out/*.tar.gz"
