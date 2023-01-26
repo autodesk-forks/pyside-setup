@@ -772,7 +772,7 @@ def Build(String workDir, String buildConfig) {
                 if (pythonVersionAdotB == '3.9') {
                     runOSCommand('brew link --overwrite --force python@3.9')
                 }
-                env.PYTHONEXE = "${cpythonDir}/${params.PythonVersion}/RelWithdebInfo/bin/python" // Note lowercase d debInfo
+                env.PYTHONEXE = "$scriptDir/../../${downloadDir}/cpython/${params.PythonVersion}/RelWithdebInfo/bin/python" // Note lowercase d debInfo
                 runOSCommand("find ${cpythonDir} -not -perm -200 -exec chmod u+w {} \\;")
                 runOSCommand("xattr -r -d com.apple.quarantine ${cpythonDir}") // Remove quarantine so the interpreter will actually run.
                 runOSCommand('xcodebuild -version && xcodebuild -showsdks')
