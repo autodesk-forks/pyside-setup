@@ -5,7 +5,7 @@ properties([
   disableConcurrentBuilds(),
   parameters([
     string(name: 'COMMIT', defaultValue: "", description: 'Commit ID to build from (optional)'),
-    choice(name: 'QtVersion', choices:['match', '6.5.0', '6.4.0', '6.2.3', '5.15.2'], description: 'Qt version (format: A.B.C). \'match\' means use Qt matching PySide6 version'),
+    choice(name: 'QtVersion', defaultValue: "6.5.0", choices:['6.5.0', 'match', '6.4.0'], description: 'Qt version (format: A.B.C). \'match\' means use Qt matching PySide6 version'),
     string(name: 'QtBuildID', defaultValue: 'latest', description: 'Qt Build ID on Artifactory (format: AAAA-MM-DD-hh-mm)'),
     choice(name: 'PythonVersion', choices:['3.10.6', '3.9.7'], description: 'Python version (format: A.B.C)'),
   ])
