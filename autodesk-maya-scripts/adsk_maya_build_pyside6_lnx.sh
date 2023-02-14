@@ -239,17 +239,6 @@ do
 
     # Build PySide6
     set -x
-    $PYTHON_EXE setup.py install --qtpaths=$QTPATH/bin/qtpaths --ignore-git --parallel=$NUMBER_OF_PROCESSORS --prefix=$PREFIX_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
-    export setup_ret=$?
-    set +x
-    if [ $setup_ret -eq 0 ]; then
-        echo "==== Success ==== $BUILDTYPE_STR Build"
-    else
-        echo >&2 "**** Failed to build **** $BUILDTYPE_STR Build"
-        exit 1
-    fi
-    echo -n "End ${BUILDTYPE} python setup.py install timestamp: "; date
-    set -x
     $PYTHON_EXE setup.py bdist_wheel --qtpaths=$QTPATH/bin/qtpaths --ignore-git --parallel=$NUMBER_OF_PROCESSORS --dist-dir=$DIST_DIR_BUILDTYPE $EXTRA_SETUP_PY_OPTS
     export setup_ret=$?
     set +x
@@ -262,23 +251,23 @@ do
     echo -n "End ${BUILDTYPE} python setup.py bdist_wheel timestamp: "; date
 
     # Unpack the wheels
-    export WHEEL_SUFFIX=${PYSIDEVERSION}-${QTVERSION}-cp${PYTHONVERSION_AB}-cp${PYTHONVERSION_AB}${DEBUG_SUFFIX}${PYMALLOC_SUFFIX}
-    if [[ $isMacOS -eq 1 ]]; then
-        export WHEEL_SUFFIX=${WHEEL_SUFFIX}-macosx_11_0_universal2
-    elif [[ $isLinux -eq 1 ]]; then
-        export WHEEL_SUFFIX=${WHEEL_SUFFIX}-linux_x86_64
-    fi
+    # export WHEEL_SUFFIX=${PYSIDEVERSION}-${QTVERSION}-cp${PYTHONVERSION_AB}-cp${PYTHONVERSION_AB}${DEBUG_SUFFIX}${PYMALLOC_SUFFIX}
+    # if [[ $isMacOS -eq 1 ]]; then
+    #     export WHEEL_SUFFIX=${WHEEL_SUFFIX}-macosx_11_0_universal2
+    # elif [[ $isLinux -eq 1 ]]; then
+    #     export WHEEL_SUFFIX=${WHEEL_SUFFIX}-linux_x86_64
+    # fi
 
-    export PYSIDE6_WHEEL=PySide6-${WHEEL_SUFFIX}.whl
-    export SHIBOKEN6_WHEEL=shiboken6-${WHEEL_SUFFIX}.whl
-    export SHIBOKEN6_GEN_WHEEL=shiboken6_generator-${WHEEL_SUFFIX}.whl
+    # export PYSIDE6_WHEEL=PySide6-${WHEEL_SUFFIX}.whl
+    # export SHIBOKEN6_WHEEL=shiboken6-${WHEEL_SUFFIX}.whl
+    # export SHIBOKEN6_GEN_WHEEL=shiboken6_generator-${WHEEL_SUFFIX}.whl
 
-    set -x
-    $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${PYSIDE6_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
-    $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN6_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
-    $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN6_GEN_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
-    set +x
-    echo -n "End ${BUILDTYPE} wheel unpack timestamp: "; date
+    # set -x
+    # $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${PYSIDE6_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+    # $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN6_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+    # $PYTHON_EXE -m wheel unpack "${DIST_DIR_BUILDTYPE}/${SHIBOKEN6_GEN_WHEEL}" --dest="${DIST_DIR_BUILDTYPE}"
+    # set +x
+    # echo -n "End ${BUILDTYPE} wheel unpack timestamp: "; date
 done
 echo -n "End timestamp: "; date
 echo "==== Success ===="
