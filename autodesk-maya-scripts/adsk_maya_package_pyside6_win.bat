@@ -91,6 +91,13 @@ set ARTIFACT_ROOT_R=%INSTALL_DIR%\%BUILD_DIRNAME_R%
 set ARTIFACT_ROOT_D=%INSTALL_DIR%\%BUILD_DIRNAME_D%
 
 robocopy /mir /ns /nc /np %DIST_DIR_D% %ARTIFACT_ROOT_D%
+REM robocopy retruns 1 on success, but jenkins takes 1 as a failure.
+if %ERRORLEVEL% NEQ 1 exit /b 1
+
 robocopy /mir /ns /nc /np %DIST_DIR_R% %ARTIFACT_ROOT_R%
 
+REM robocopy retruns 1 on success, but jenkins takes 1 as a failure.
+if %ERRORLEVEL% NEQ 1 exit /b 1
+
 echo ==== Success ====
+exit /b 0
