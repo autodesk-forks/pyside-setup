@@ -585,7 +585,12 @@ def Initialize(String buildConfig) {
             gitCommit = params.COMMIT == "" ? scmInfo.GIT_COMMIT : params.COMMIT
             println "${scm.branches} Branch: ${env.BRANCH_NAME}"
             runOSCommand("git checkout HEAD~")
-            runOSCommand("git branch -D ${env.BRANCH_NAME}")
+            try {
+                runOSCommand("git branch -D ${env.BRANCH_NAME}")
+            } catch(failure) {
+                // Failure is ok here - no branch named this, which may happen if it's a
+                // newly created branch.
+            }
             runOSCommand("git fetch")
             runOSCommand("git checkout ${env.BRANCH_NAME}")
 
