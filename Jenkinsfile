@@ -547,11 +547,11 @@ EOF"""
             info = readJSON text: response
             def artifactList = info.children
 
-            // There must be somewhere between 3 and 5 entries in the folder
-            // mac, linux, windows as a minimum. Some builds have a second windows
-            // artifact splitting out the examples, and some also have two linux
-            // builds - RHEL8 and CentOS 7.
-            if (artifactList.size() < 3 || artifactList.size() > 5)
+            // There must be either 3 or 6 entries in the folder.
+            // The folders with 3 are from before the debuginfo files were split
+            // out. 6 includes 3 other artifacts holding the debuginfo files for
+            // each platform.
+            if (artifactList.size() != 3 && artifactList.size() != 6)
                 continue // Try the next one
 
             if (buildID == 'latest' || dateFolder.contains(buildID)) {
