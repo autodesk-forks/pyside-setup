@@ -157,9 +157,9 @@ fi # [[ $SKIP_QT -eq 0 ]]
 
 # Which Python artifact to use - not used on all platforms
 declare -A pythonArtifactDownloadUris
-pythonArtifactDownloadUris["windows"]="team-maya-generic/python/3.10.6/cpython-3.10.6-win-MANUAL-2022_08_31_1430.zip"
-pythonArtifactDownloadUris["linux"]="team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-11.2.1-system_openssl-1.1.1k_MANUAL_202210211108.zip"
-pythonArtifactDownloadUris["macos"]="team-maya-generic/python/3.10.6/cpython-3.10.6-mac-universal2-expandedframework-MANUAL-2022_09_22_1000.tar.gz"
+pythonArtifactDownloadUris["windows"]="team-maya-generic/python/3.11.4/cpython-3.11.4-win.zip"
+pythonArtifactDownloadUris["linux"]="team-maya-generic/python/3.11.4/cpython-3.11.4-lin-rocky8-gcc12-2023_08_22_1645.zip"
+pythonArtifactDownloadUris["macos"]="team-maya-generic/python/3.11.4/cpython-3.11.4-mac-universal2.zip"
 pythonArtifactDownloadUri=${pythonArtifactDownloadUris[${OS}]}
 
 # Which OpenSSL artifact to use - not used on all platforms

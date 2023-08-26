@@ -131,13 +131,13 @@ PYTHONVERSION_AB=${PYTHONVERSION_A}${PYTHONVERSION_B}
 PYTHONVERSION_AdotB=${PYTHONVERSION_A}.${PYTHONVERSION_B}
 
 # Validate that the Python version given is within the accepted values
-if [[ ! "$PYTHONVERSION" =~ (3\.9\.7|3\.10\.[0-9]*) ]]; then
-    # We expect the python version to be 3.9.7, or 3.10.x
+if [[ ! "$PYTHONVERSION" =~ (3\.10\.6|3\.11\.[0-9]*) ]]; then
+    # We expect the python version to be 3.10.6, or 3.11.x
     # right now. It will change in the future, and at that time this
     # check should be updated to reflect the newly supported python
     # versions.
-    echo >&2 "Expecting Python 3.9.7, or 3.10.x. aborting."
-    echo >&2 "Example: export PYTHONVERSION=3.9.7"
+    echo >&2 "Expecting Python 3.10.6, or 3.11.x. aborting."
+    echo >&2 "Example: export PYTHONVERSION=3.11.4"
     exit 1
 fi
 

@@ -5,9 +5,9 @@ properties([
   disableConcurrentBuilds(),
   parameters([
     string(name: 'COMMIT', defaultValue: "", description: 'Commit ID to build from (optional)'),
-    choice(name: 'QtVersion', defaultValue: "6.5.0", choices:['6.5.0', 'match', '6.4.0'], description: 'Qt version (format: A.B.C). \'match\' means use Qt matching PySide6 version'),
+    choice(name: 'QtVersion', defaultValue: "6.5.2", choices:['6.5.2', '6.5.0', 'match', '6.4.0'], description: 'Qt version (format: A.B.C). \'match\' means use Qt matching PySide6 version'),
     string(name: 'QtBuildID', defaultValue: 'latest', description: 'Qt Build ID on Artifactory (format: AAAA-MM-DD-hh-mm)'),
-    choice(name: 'PythonVersion', choices:['3.10.6', '3.9.7'], description: 'Python version (format: A.B.C)'),
+    choice(name: 'PythonVersion', choices:['3.11.4', '3.10.6', '3.9.7'], description: 'Python version (format: A.B.C)'),
   ])
 ])
 
@@ -635,9 +635,12 @@ def Initialize(String buildConfig) {
             changeSetContent = getChangeSetString(commitInfo)
         }
 
+        print "artifactoryRoot: ${artifactoryRoot}"
+        print "params.QtVersion: ${params.QtVersion}"
+
         qtVersion = getQtVersion(params.QtVersion, "${artifactoryRoot}api/storage/oss-stg-generic/Qt")
 
-        println("qtVersion: ${qtVersion}")
+        print "qtVersion: ${qtVersion}"
         if (qtVersion == "") {
             error("**** Error:  Unable to find version of Qt that contains artifacts for Maya build ***** ")
         }
@@ -688,7 +691,9 @@ def Setup(String buildConfig) {
         if (checkOS() == "Mac") {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Mac.tar.gz"
             artifacts[buildConfig]  = ["${QtArtifact_Mac}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-macos-universal.tar.gz"]
-            if (params.PythonVersion == '3.10.6') {
+            if (params.PythonVersion == '3.11.4') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.11.4/cpython-3.11.4-mac-universal2.zip"
+            } else if (params.PythonVersion == '3.10.6') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-mac-universal2-expandedframework-MANUAL-2022_09_22_1000.tar.gz"
             } else if (params.PythonVersion == '3.9.7') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-mac-002-universal2-expandedframework.tar.gz"
@@ -697,7 +702,9 @@ def Setup(String buildConfig) {
         else if (checkOS() == "RedHat") {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Rhel8.tar.gz"
             artifacts[buildConfig]  = ["${QtArtifact_Rhel8}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-linux-Rhel8.2-gcc9.2-x86_64.tar.gz", "team-maya-generic/Cmake/cmake-3.22.1-linux-x86_64.tar.gz"]
-            if (params.PythonVersion == '3.10.6') {
+            if (params.PythonVersion == '3.11.4') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.11.4/cpython-3.11.4-lin-rocky8-gcc12-2023_08_22_1645.zip"
+            } else if (params.PythonVersion == '3.10.6') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-gcc-11.2.1-system_openssl-1.1.1k_MANUAL_202210211108.zip"
             } else if (params.PythonVersion == '3.9.7') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-gcc-9.3.1-openssl-1.1.1k_manual_build-2.tar.gz"
@@ -706,7 +713,9 @@ def Setup(String buildConfig) {
         else {
             PysidePackage[buildConfig] = "${artifactName}-Maya-PySide6-Windows.zip"
             artifacts[buildConfig]  = ["${QtArtifact_Win}", "team-maya-generic/libclang/release_140-based/libclang-release_140-based-windows-vs2019_64.zip", "team-maya-generic/openssl/1.1.1g/openssl-1.1.1g-win-vc140.zip", "team-maya-generic/Cmake/cmake-3.22.1-windows-x86_64.zip", "team-shotgun-view-master-generic/jom/jom_1_1_3.zip"]
-            if (params.PythonVersion == '3.10.6') {
+            if (params.PythonVersion == '3.11.4') {
+                artifacts[buildConfig] += "team-maya-generic/python/3.11.4/cpython-3.11.4-win.zip"
+            } else if (params.PythonVersion == '3.10.6') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.10.6/cpython-3.10.6-win-MANUAL-2022_08_31_1430.zip"
             } else if (params.PythonVersion == '3.9.7') {
                 artifacts[buildConfig] += "team-maya-generic/python/3.9.7/cpython-3.9.7-win-001.zip"
