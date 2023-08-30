@@ -334,6 +334,10 @@ def GetArtifacts(String workDir, String buildConfig) {
                     runOSCommand("tar ${z}xvf ${downloadFile} -C ${downloadDir}")
                 } else if (downloadFile.endsWith(".zip")) {
                     runOSCommand("unzip ${downloadFile} -d ${downloadDir}")
+                    if (checkOS() == "Mac" && downloadFile.contains("python")) {
+                        def frameworksPath = "${downloadDir}/cpython/${pythonVersion}/RelWithDebInfo/Frameworks"
+						runOSCommand("tar ${z}xvf ${frameworksPath}/Python.framework.tar.gz -C ${frameworksPath} Python.framework")
+					}
                 }
             }
             else {
@@ -635,12 +639,9 @@ def Initialize(String buildConfig) {
             changeSetContent = getChangeSetString(commitInfo)
         }
 
-        print "artifactoryRoot: ${artifactoryRoot}"
-        print "params.QtVersion: ${params.QtVersion}"
-
         qtVersion = getQtVersion(params.QtVersion, "${artifactoryRoot}api/storage/oss-stg-generic/Qt")
 
-        print "qtVersion: ${qtVersion}"
+        println("qtVersion: ${qtVersion}")
         if (qtVersion == "") {
             error("**** Error:  Unable to find version of Qt that contains artifacts for Maya build ***** ")
         }
