@@ -1015,10 +1015,11 @@ static PyObject *missing_func(PyObject * /* self */ , PyObject *args)
     if (!PyLong_Check(value))
         Py_RETURN_NONE;
     auto *type = reinterpret_cast<PyTypeObject *>(klass);
-    auto *sbk_missing = PyDict_GetItem(type->tp_dict, _sbk_missing);
+    AutoDecRef tpDict(PepType_GetDict(type));
+    auto *sbk_missing = PyDict_GetItem(tpDict.object(), _sbk_missing);
     if (!sbk_missing) {
         sbk_missing = PyDict_New();
-        PyDict_SetItem(type->tp_dict, _sbk_missing, sbk_missing);
+        PyDict_SetItem(tpDict.object(), _sbk_missing, sbk_missing);
     }
     // See if the value is already in the dict.
     AutoDecRef val_str(PyObject_CallMethod(value, "__str__", nullptr));
