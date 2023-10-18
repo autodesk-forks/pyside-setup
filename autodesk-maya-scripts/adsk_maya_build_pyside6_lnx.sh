@@ -113,6 +113,9 @@ for pythonexe in "${PYTHONEXE}" "${PYTHONDEXE}"; do
         echo "${pythonexe_varname}=${pythonexe}"
     fi
 
+    echo "PYTHONHOME=${PYTHONHOME}"
+    unset PYTHONHOME
+
     pythonexe_version=$($pythonexe -c "import sys; v=sys.version_info; print('{}.{}.{}'.format(v.major, v.minor, v.micro))")
     if [[ ! "$pythonexe_version" == "$PYTHONVERSION" ]]; then
         echo >&2 "Expecting Python ${PYTHONVERSION}, but the python executable ${pythonexe} is ${pythonexe_version}. aborting."
