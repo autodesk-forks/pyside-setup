@@ -41,7 +41,6 @@
     darwin ci
 [QtWidgets::qpicture_test]
     darwin ci
-
 # PYSIDE-535: These errors are still present. Please try to remove one :)
 [sample::mixed_mi]
     pypy
@@ -65,6 +64,9 @@
     pypy
 [QtQml::bug_825]
     pypy
+    py3.8       # bug in typeobject::type_mro_modified, fix in 3.9
+    py3.9       # fixed in 3.9.12
+    py3.10      # fixed in 3.10.4
 [QtQml::javascript_exceptions]
     pypy
 [QtQml::qqmlincubator_incubateWhile]
