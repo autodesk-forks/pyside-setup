@@ -5,7 +5,7 @@ instructions:
     - type: InstallSourceArchive
       maxTimeInSeconds: 600
       maxTimeBetweenOutput: 600
-      project: qt/qtbase
+      project: qt/tqtc-qtbase
       ref: "CURRENT_BRANCH"
       directory: qt/qtbase
       userMessageOnFailure: >
@@ -20,7 +20,7 @@ instructions:
               Could not install source archive. Please investigate why.
     - type: EnvironmentVariable
       variableName: QT_MODULE_TO_TEST
-      variableValue: pyside/pyside-setup
+      variableValue: pyside/tqtc-pyside-setup
       userMessageOnFailure: >
               Failed to set environment variable. This should not happen.
     - type: ExecuteCommand
