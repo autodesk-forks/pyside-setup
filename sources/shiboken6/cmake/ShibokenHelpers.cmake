@@ -758,3 +758,17 @@ set PATH=${path_dirs_native};%PATH%
 
     set(${path_out_var} "${wrapper_path}" PARENT_SCOPE)
 endfunction()
+
+# Returns the platform-specific relative rpath base token, if it's supported.
+# If it's not supported, returns the string NO_KNOWN_RPATH_REL_BASE.
+function(get_rpath_base_token out_var)
+    if(APPLE)
+        set(rpath_rel_base "@loader_path")
+    elseif(UNIX)
+        set(rpath_rel_base "$ORIGIN")
+    else()
+        #has no effect on Windows
+        set(rpath_rel_base "NO_KNOWN_RPATH_REL_BASE")
+    endif()
+    set(${out_var} "${rpath_rel_base}" PARENT_SCOPE)
+endfunction()
