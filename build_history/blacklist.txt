@@ -60,6 +60,8 @@
     pypy
 [QtCore::qbytearray_test]
     pypy
+[QtCore::qenum_test]
+    py3.12      # old enum code leaks
 [QtWidgets::bug_836]
     pypy
 [QtQml::bug_825]
