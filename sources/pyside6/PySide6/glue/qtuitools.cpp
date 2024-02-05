@@ -99,19 +99,16 @@ if (uiFileName.isEmpty()) {
     Py_RETURN_NONE;
 }
 
-// Use the 'pyside6-uic' wrapper instead of 'uic'
-// This approach is better than rely on 'uic' since installing
-// the wheels cover this case.
-QString uicBin("pyside6-uic");
-QStringList uicArgs = {QString::fromUtf8(uiFileName)};
+QString uicBin("uic");
+QStringList uicArgs = {"-g", "python", QString::fromUtf8(uiFileName)};
 
 QProcess uicProcess;
 uicProcess.start(uicBin, uicArgs);
 if (!uicProcess.waitForFinished()) {
-    qCritical() << "Cannot run 'pyside6-uic': " << uicProcess.errorString() << " - "
+    qCritical() << "Cannot run 'uic': " << uicProcess.errorString() << " - "
                 << "Exit status " << uicProcess.exitStatus()
                 << " (" << uicProcess.exitCode() << ")\n"
-                << "Check if 'pyside6-uic' is in PATH";
+                << "Check if 'uic' is in PATH";
     Py_RETURN_NONE;
 }
 QByteArray uiFileContent = uicProcess.readAllStandardOutput();
