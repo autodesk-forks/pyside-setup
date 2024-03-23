@@ -1,0 +1,1 @@
+adsk_maya_build_pyside6_lnx.sh

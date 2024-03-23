@@ -1,0 +1,1 @@
+adsk_maya_package_pyside6_lnx.sh
